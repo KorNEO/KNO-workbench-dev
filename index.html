@@ -561,6 +561,7 @@
 
     function loadPresence(){
       if(!$('zones')) return;
+      if((new URLSearchParams(location.search)).get('demo')==='write'){ var el=$('p-count'); if(el) el.textContent='(데모 미리보기)'; return; }
       google.script.run.withSuccessHandler(renderPresence)
         .withFailureHandler(function(){ var el=$('p-count'); if(el) el.textContent='접속 현황을 불러올 수 없습니다.'; })
         .getPresence(TOKEN);
