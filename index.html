@@ -810,12 +810,12 @@
       function ea(s){ return esc(String(s==null?'':s)).replace(/"/g,'&quot;'); }   // 속성값 이스케이프
       function inp(f,ed){ return '<input class="w-field" data-f="'+esc(f)+'" value="'+ea(pv(f))+'"'+(ed?'':' readonly')+'>'; }
       function ta(f,rows,ed){ return '<textarea class="w-field" data-f="'+esc(f)+'" rows="'+(rows||2)+'"'+(ed?'':' readonly')+'>'+esc(pv(f))+'</textarea>'; }
-      function dl(f,list,ed){ return '<input class="w-field" data-f="'+esc(f)+'" list="'+list+'" value="'+ea(pv(f))+'" placeholder="검색·선택"'+(ed?'':' readonly')+'>'; }
+      function dl(f,list,ed){ return '<input class="w-field" data-f="'+esc(f)+'" list="'+list+'" value="'+ea(pv(f))+'" placeholder="선택"'+(ed?'':' readonly')+'>'; }
       function fld(label,ctrl){ return '<div class="wf"><label>'+esc(label)+'</label>'+ctrl+'</div>'; }
       // 2차 검수 = 1차 표시값 그대로 복사(프리필 포함), 변경 시 하이라이트
       function inp2(f,ed){ var v=pv(f); return '<input class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+ea(v)+'" value="'+ea(v)+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'; }
       function ta2(f,rows,ed){ var v=pv(f); return '<textarea class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+ea(v)+'" rows="'+(rows||2)+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'+esc(v)+'</textarea>'; }
-      function dl2(f,list,ed){ var v=pv(f); return '<input class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+ea(v)+'" list="'+list+'" value="'+ea(v)+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'; }
+      function dl2(f,list,ed){ var v=pv(f); return '<input class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+ea(v)+'" list="'+list+'" value="'+ea(v)+'" placeholder="선택" oninput="mark2(this)"'+(ed?'':' readonly')+'>'; }
       var llmDef=String((it['GPT 정의문']||'')+' '+(it['GPT 설명문']||'')).trim();
       var h='<div class="cand-label">신어 집필</div><div class="cand-term">'+esc(it['신어 후보'])+'</div>'
         + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' → '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')
