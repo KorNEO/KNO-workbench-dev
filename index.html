@@ -574,7 +574,7 @@
       $('nav').style.display='none'; $('view-landing').classList.add('hidden'); $('view-work').classList.remove('hidden');
       $('btn-add-item').style.display='block';
       $('detail').innerHTML='<div class="placeholder">데모 데이터 불러오는 중…</div>';
-      fetch('demo_write.json').then(function(r){ return r.json(); }).then(function(rows){
+      fetch('demo_write.json?t='+Date.now(), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(rows){
         ITEMS=rows; CUR=-1; renderList();
         if(ITEMS.length){ CUR=0; document.querySelectorAll('.item').forEach(function(el){ el.classList.toggle('sel', el.getAttribute('data-i')=='0'); }); renderWriteDetail(ITEMS[0]); }
       }).catch(function(e){ $('detail').innerHTML='<div class="placeholder">데모 로드 실패: '+esc(e.message)+'</div>'; });
