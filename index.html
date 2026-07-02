@@ -141,6 +141,10 @@
     .guide-md blockquote { margin:10px 0; padding:8px 14px; background:#f7f8fb; border-left:3px solid #c6d0f5; border-radius:6px; }
     .guide-md blockquote p { margin:3px 0; font-size:13px; color:#4a5168; }
     .guide-md hr { border:none; border-top:1px solid var(--line); margin:18px 0; }
+    .guide-md table.gtbl { border-collapse:collapse; margin:12px 0; font-size:13px; width:100%; }
+    .guide-md .gtbl th, .guide-md .gtbl td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+    .guide-md .gtbl th { background:#eef1f9; font-weight:700; }
+    .guide-md .gtbl tr:nth-child(even) td { background:#fafbfe; }
     .guide-box { width:min(940px,95vw); }
     .guide-wrap { display:flex; gap:16px; }
     .guide-toc { flex:none; width:190px; max-height:64vh; overflow:auto; border-right:1px solid var(--line); padding-right:10px; }
@@ -1126,11 +1130,23 @@
       rd.readAsText(f,'utf-8');
     }
     function renderGuide(md){
-      var lines=String(md||'').split(/\r?\n/), html='', bq=false, toc=[], hi=0, ulStack=[];
+      var lines=String(md||'').split(/\r?\n/), html='', bq=false, toc=[], hi=0, ulStack=[], tbl=null;
       function inl(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" target="_blank">$1</a>'); }
       function closeUl(){ while(ulStack.length){ html+='</ul>'; ulStack.pop(); } }
       function closeBq(){ if(bq){ html+='</blockquote>'; bq=false; } }
+      function cellsOf(ln){ return ln.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(function(x){ return x.trim(); }); }
+      function flushTbl(){ if(!tbl) return; var t=tbl; tbl=null; if(!t.rows.length && !t.head) return;
+        html+='<table class="gtbl">';
+        if(t.head) html+='<thead><tr>'+t.head.map(function(c){ return '<th>'+inl(c)+'</th>'; }).join('')+'</tr></thead>';
+        html+='<tbody>'+t.rows.map(function(r){ return '<tr>'+r.map(function(c){ return '<td>'+inl(c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table>'; }
       lines.forEach(function(ln){ var m;
+        if(/^\s*\|.*\|\s*$/.test(ln)){
+          var cs=cellsOf(ln);
+          if(cs.length && cs.every(function(c){ return /^:?-{2,}:?$/.test(c); })){ if(tbl && tbl.rows.length && !tbl.head){ tbl.head=tbl.rows.pop(); } return; }
+          if(!tbl){ closeUl(); closeBq(); tbl={rows:[],head:null}; }
+          tbl.rows.push(cs); return;
+        }
+        flushTbl();
         if((m=ln.match(/^(#{1,6})\s+(.*)$/))){ closeUl(); closeBq(); var lv=m[1].length, id='g-h'+(hi++); if(lv<=3) toc.push({lv:lv,text:m[2],id:id}); html+='<h'+lv+' id="'+id+'">'+inl(m[2])+'</h'+lv+'>'; }
         else if(/^\s*---+\s*$/.test(ln)){ closeUl(); closeBq(); html+='<hr>'; }
         else if((m=ln.match(/^>\s?(.*)$/))){ closeUl(); if(!bq){ html+='<blockquote>'; bq=true; } if(m[1].trim()!=='') html+='<p>'+inl(m[1])+'</p>'; }
@@ -1141,7 +1157,7 @@
           html+='<li>'+inl(m[2])+'</li>'; }
         else if(ln.trim()===''){ closeUl(); closeBq(); }
         else { closeUl(); closeBq(); html+='<p>'+inl(ln)+'</p>'; } });
-      closeUl(); closeBq();
+      flushTbl(); closeUl(); closeBq();
       return {html:html, toc:toc};
     }
     function showGuide(md){
