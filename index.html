@@ -87,9 +87,6 @@
     .stage-sec.s2 { background:#f4f8ff; border-left:4px solid #a3c0f0; }
     .ss-head { font-weight:800; font-size:15px; margin-bottom:6px; } .ss-head .ss-who { font-weight:600; font-size:12px; color:var(--muted); margin-left:8px; }
     .w-field.changed { background:#dbe9ff; border-color:#6f9bf0; }
-    .sym-bar { margin:12px 0; font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
-    .sym-bar .sym { border:1px solid var(--line); background:#fff; border-radius:6px; padding:3px 9px; font-size:14px; cursor:pointer; color:var(--ink); }
-    .sym-bar .sym:hover { background:#eef1ff; border-color:var(--brand); }
     .prior { background:#f7f8ff; border:1px solid #e2e6fb; border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:12px; } .prior .lab { color:var(--brand-d); font-weight:700; }
     .stages.two { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .stage-panel { border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:#fcfcff; margin-top:10px; }
@@ -800,12 +797,6 @@
       return tok_(cur).map(function(w){ if(pset[w]>0){ pset[w]--; return esc(w); } return '<mark>'+esc(w)+'</mark>'; }).join(' ');
     }
     function refRow_(k,v){ return '<div class="row"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v||'-')+'</div></div>'; }
-    var LAST_FIELD=null;
-    function insertSym(s){
-      var el=LAST_FIELD; if(!el||el.readOnly){ toast('먼저 입력할 칸을 클릭하세요.'); return; }
-      var a=el.selectionStart||0, b=el.selectionEnd||0, v=el.value;
-      el.value=v.slice(0,a)+s+v.slice(b); el.focus(); try{ el.selectionStart=el.selectionEnd=a+s.length; }catch(e){}
-    }
     function mark2(el){ el.classList.toggle('changed', String(el.value)!==String(el.getAttribute('data-orig')||'')); }
     function renderWriteDetail(it){
       var isW=(ME.isManager||ME.name===String(it['작업자']||'').trim());
@@ -829,8 +820,6 @@
         + '<div class="drow"><span class="dl">LLM</span><div class="dv">'+esc(llmDef||'(없음)')+'</div></div>'
         + '<div class="drow"><span class="dl">작업자</span><div class="dv">'+wordDiff_(llmDef,it['1차 뜻풀이'])+'</div></div>'
         + '<div class="drow"><span class="dl">검수자</span><div class="dv">'+wordDiff_(it['1차 뜻풀이'],it['2차 뜻풀이'])+'</div></div></div>';
-      var SYMS=['^','·','-','▼','▽','←','▾','¶','≪','≫','“','”','‘','’','『』','「」','〔〕','【】','「구」','<영>','<한>','<일>','<프>'];
-      h+='<div class="sym-bar">기호 삽입: '+SYMS.map(function(s){ return '<button type="button" class="sym" onclick="insertSym(\''+s+'\')">'+esc(s)+'</button>'; }).join('')+' <span class="kbd">(칸 클릭 후 누르면 커서 위치에 삽입)</span></div>';
       h+='<div class="write-cols">';
       // ← 1차 작업(작업자)
       h+='<div class="stage-sec s1"><div class="ss-head">📝 1차 작업 <span class="ss-who">작업자 '+esc(it['작업자']||'?')+'</span></div>'
@@ -864,7 +853,6 @@
       h+='<datalist id="dl-jm">'+FIELD_67.map(function(x){return '<option value="『'+esc(x)+'』">';}).join('')+'</datalist>';
       h+='<datalist id="dl-um">'+FIELD_15.map(function(x){return '<option value="〔'+esc(x)+'〕">';}).join('')+'</datalist>';
       $('detail').innerHTML=h;
-      document.querySelectorAll('#detail .w-field').forEach(function(el){ el.addEventListener('focus',function(){ LAST_FIELD=el; }); });
     }
     function collectWrite_(stage){ var f={}; document.querySelectorAll('#detail .stage-sec.s'+(stage===2?2:1)+' .w-field').forEach(function(el){ var k=el.getAttribute('data-f2')||el.getAttribute('data-f'); if(k) f[k]=el.value; }); return f; }
     function saveWriteForm(stage, silent){
