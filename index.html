@@ -6,7 +6,7 @@
   <style>
     :root {
       --brand:#3f51b5; --brand-d:#2c3a8c; --ink:#1f2330; --muted:#7a8194; --line:#e6e8ef; --bg:#f5f6fa;
-      --surface:#ffffff; --surface2:#f7f8fa; --surface3:#eef0f5;
+      --surface:#ffffff; --surface2:#f7f8fa; --surface3:#eef0f5; --rfs:14px;
       --sineo:#1b9e5a; --sineo-bg:#e7f6ee; --bisineo:#d8453b; --bisineo-bg:#fdeceb;
       --hold:#e0921a; --hold-bg:#fff4e2; --reject:#6b7280; --reject-bg:#eef0f3;
     }
@@ -31,6 +31,8 @@
     body.dark .sym-bar .sym:hover { background:#213a63; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:"Pretendard","Malgun Gothic","맑은 고딕",system-ui,sans-serif; color:var(--ink); background:var(--bg); font-size:14px; }
+    /* 실제 폰트 크기 조절(A-/A+) — 읽는 텍스트에 적용 */
+    .w-field, .drow .dv, .llm-box .v, .llm-box .k, .ex-box, .item .nm, .row .v, .guide-md p, .guide-md li, .guide-md .gtbl td, .guide-md .gtbl th { font-size:var(--rfs); }
     a { color:var(--brand); }
     .hidden { display:none !important; }
     header { display:flex; align-items:center; gap:16px; padding:0 18px; height:54px; background:linear-gradient(90deg,var(--brand),var(--brand-d)); color:#fff; box-shadow:0 1px 6px rgba(0,0,0,.15); position:sticky; top:0; z-index:50; }
@@ -623,13 +625,14 @@
     function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v==null?d:v; }catch(e){ return d; } }
     function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
     function applyPrefs(){
-      var fs=parseInt(lsGet('kno_fs','0'),10)||0, z=Math.max(0.85,Math.min(1.5,1+fs*0.08));
-      document.body.style.zoom=z;
+      var fs=parseInt(lsGet('kno_fs','0'),10)||0, rfs=Math.max(12,Math.min(26,14+fs*2));
+      document.documentElement.style.setProperty('--rfs', rfs+'px');
+      document.body.style.zoom='';
       var dark=lsGet('kno_dark','0')==='1';
       document.body.classList.toggle('dark',dark);
       var db=$('darkBtn'); if(db) db.textContent=dark?'☀':'🌙';
     }
-    function setFont(d){ var fs=(parseInt(lsGet('kno_fs','0'),10)||0)+d; fs=Math.max(-2,Math.min(6,fs)); lsSet('kno_fs',fs); applyPrefs(); }
+    function setFont(d){ var fs=(parseInt(lsGet('kno_fs','0'),10)||0)+d; fs=Math.max(-1,Math.min(6,fs)); lsSet('kno_fs',fs); applyPrefs(); }
     function toggleDark(){ lsSet('kno_dark', lsGet('kno_dark','0')==='1'?'0':'1'); applyPrefs(); }
     applyPrefs();
     (function init(){
