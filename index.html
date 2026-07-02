@@ -818,7 +818,9 @@
       function dl2(f,list,ed){ var v=pv(f); return '<input class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+ea(v)+'" list="'+list+'" value="'+ea(v)+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'; }
       var llmDef=String((it['GPT 정의문']||'')+' '+(it['GPT 설명문']||'')).trim();
       var h='<div class="cand-label">신어 집필</div><div class="cand-term">'+esc(it['신어 후보'])+'</div>'
-        + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' → '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')+'</div>';
+        + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' → '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')
+        + (String(it['ID']||'').indexOf('::new-')>=0 ? ' &nbsp; <button class="btn ghost del-item" onclick="deleteWriteItem()">🗑 새 항목 삭제</button>' : '')
+        + '</div>';
       h+='<div class="llm-box"><h3>🤖 GPT 1차 초안</h3>'+refRow_('의미 범주',it['GPT 의미 범주'])+refRow_('정의문',it['GPT 정의문'])+refRow_('설명문',it['GPT 설명문'])+refRow_('용례',it['GPT 용례'])+'</div>';
       h+='<div class="diff-box"><h3>✍️ 뜻풀이 변경 이력 <span class="kbd">(변경분 하이라이트)</span></h3>'
         + '<div class="drow"><span class="dl">LLM</span><div class="dv">'+esc(llmDef||'(없음)')+'</div></div>'
@@ -878,6 +880,16 @@
       google.script.run.withSuccessHandler(function(r){ addLocal(r.id); toast('새 항목을 추가했습니다.'); })
         .withFailureHandler(function(e){ toast('실패: '+e.message); })
         .addWriteItem(TOKEN, pid, cand);
+    }
+    function deleteWriteItem(){
+      var it=ITEMS[CUR]; if(!it) return;
+      if(String(it['ID']||'').indexOf('::new-')<0){ toast('배분된 항목은 삭제할 수 없습니다.'); return; }
+      if(!confirm('새 항목 "'+it['신어 후보']+'"을(를) 삭제할까요?')) return;
+      function done(){ ITEMS.splice(CUR,1); CUR=-1; renderList(); $('detail').innerHTML='<div class="placeholder">왼쪽에서 신어 후보 항목을 선택하세요.</div>'; }
+      if((new URLSearchParams(location.search)).get('demo')==='write'){ done(); return; }
+      google.script.run.withSuccessHandler(function(){ done(); toast('삭제했습니다.'); })
+        .withFailureHandler(function(e){ toast('실패: '+e.message); })
+        .deleteWriteItem(TOKEN, it['ID']);
     }
     function pick(stage,v){ SEL[stage]=v; document.querySelectorAll('.verdicts[data-stage="'+stage+'"] .vcard').forEach(function(c){ c.classList.toggle('on', c.getAttribute('data-v')===v); }); markDirty(); }
 
