@@ -30,12 +30,13 @@ var SAVE_FNS = { saveFirst: '1차', saveSecond: '2차', saveWrite: '집필' };
 var HEADERS_WRITE = [
   'ID', '신어 후보', '작업자', '검수자', '배정 주차', '상태', '작업 구분', '1차 일시', '2차 일시',
   '최초출현일', '추출 시기', 'GPT 의미 범주', 'GPT 정의문', 'GPT 설명문', 'GPT 용례',
-  '색인표제어', '등재표제어', '원어', '어종 표시', '어원', '품사', '전문 분야', '의미 영역',
-  '뜻풀이', '용례', '용례 출처', '용례 URL', '수정 용례', '집필 메모',
-  '1차 뜻풀이', '2차 뜻풀이', '검토 메모(뜻풀이·예문)', '검토 메모(형태부)', '검토자 메모'
+  '색인표제어', '등재표제어', '원어', '어종 표시', '어원', '단어/구', '품사', '일상어/전문어', '전문 분야', '의미 영역',
+  '뜻풀이', '용례', '용례 출처', '용례 URL', '수정 용례', 'X년 Y월 신어',
+  '집필 메모(형태부)', '집필 메모(의미부)',
+  '1차 뜻풀이', '2차 뜻풀이', '검수 메모(형태부)', '검수 메모(의미부)'
 ];
 // 집필자/검토자가 입력하는 필드(검토자는 전수 수정 가능)
-var WRITE_FIELDS = ['색인표제어', '등재표제어', '원어', '어종 표시', '어원', '품사', '전문 분야', '의미 영역', '뜻풀이', '용례', '용례 출처', '용례 URL', '수정 용례', '집필 메모', '검토 메모(뜻풀이·예문)', '검토 메모(형태부)', '검토자 메모'];
+var WRITE_FIELDS = ['색인표제어', '등재표제어', '원어', '어종 표시', '어원', '단어/구', '품사', '일상어/전문어', '전문 분야', '의미 영역', '뜻풀이', '용례', '용례 출처', '용례 URL', '수정 용례', 'X년 Y월 신어', '집필 메모(형태부)', '집필 메모(의미부)', '검수 메모(형태부)', '검수 메모(의미부)'];
 function headersFor_(kind) { return kind === '집필' ? HEADERS_WRITE : HEADERS; }
 
 // 연구원 스키마: 구글계정1 이름2 역할3 초대일시4 응답상태5 수락일시6 token7 개인링크8 아이디9 비번해시10 소속11 성별12
@@ -62,7 +63,7 @@ var API = {
   getResearchers: getResearchers, saveResearchers: saveResearchers,
   getAssignees: getAssignees, genAgree: genAgree, genReal: genReal,
   getProgress: getProgress, getItems: getItems, getItem: getItem,
-  saveFirst: saveFirst, saveSecond: saveSecond, saveWrite: saveWrite, logClientFail: logClientFail,
+  saveFirst: saveFirst, saveSecond: saveSecond, saveWrite: saveWrite, addWriteItem: addWriteItem, deleteWriteItem: deleteWriteItem, logClientFail: logClientFail,
   requestOtp: requestOtp, registerAccount: registerAccount, login: login
 };
 function doPost(e) {
@@ -570,6 +571,34 @@ function saveWrite(token, payload) {
     SpreadsheetApp.flush(); opMark_(payload.op_id);
     return { ok: true };
   } finally { lock.releaseLock(); }
+}
+// 집필 새 항목 추가
+function addWriteItem(token, projectId, cand) {
+  var me = me_(token);
+  cand = String(cand || '').trim(); if (!cand) throw new Error('신어 후보를 입력하세요.');
+  var p = projById_(projectId); if (!p || p.type !== '집필') throw new Error('집필 프로젝트가 아닙니다.');
+  var sh = projItemSheet_(projectId); if (!sh) throw new Error('시트 없음');
+  var rid = projectId + '::new-' + Date.now().toString(36);
+  var row = HEADERS_WRITE.map(function (k) {
+    if (k === 'ID') return rid;
+    if (k === '신어 후보') return cand;
+    if (k === '작업 구분') return '집필';
+    if (k === '상태') return STATUS.NONE;
+    if (k === '작업자') return me.isManager ? '' : me.name;
+    return '';
+  });
+  sh.appendRow(row); styleHeader_(sh, HEADERS_WRITE.length); SpreadsheetApp.flush();
+  return { id: rid, cand: cand };
+}
+// 집필 새 항목 삭제 — 새로 추가한 항목(::new-)만 허용, 배분된 항목은 불가
+function deleteWriteItem(token, rowId) {
+  me_(token);
+  if (String(rowId || '').indexOf('::new-') < 0) throw new Error('배분된 항목은 삭제할 수 없습니다.');
+  var sh = projSheetOfRow_(rowId); if (!sh) throw new Error('프로젝트 없음');
+  var idx = headerIndex_(sh), rownum = findRow_(sh, idx, rowId);
+  if (rownum < 0) throw new Error('행 없음: ' + rowId);
+  sh.deleteRow(rownum); SpreadsheetApp.flush();
+  return { ok: true };
 }
 
 // ── 로그 ───────────────────────────────────────────────
