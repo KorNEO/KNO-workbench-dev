@@ -801,6 +801,7 @@
     }
     function refRow_(k,v){ return '<div class="row"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v||'-')+'</div></div>'; }
     function mark2(el){ el.classList.toggle('changed', String(el.value)!==String(el.getAttribute('data-orig')||'')); }
+    function toggleCond(el){ var sec=el.closest('.stage-sec'); if(!sec) return; var t=el.getAttribute('data-target'); var f=sec.querySelector('[data-f="'+t+'"],[data-f2="'+t+'"]'); if(f) f.disabled=(el.value!==el.getAttribute('data-enable')); }
     function renderWriteDetail(it){
       var isW=(ME.isManager||ME.name===String(it['작업자']||'').trim());
       var isR=(ME.isManager||ME.name===String(it['검수자']||'').trim());
@@ -816,6 +817,8 @@
       function inp2(f,ed){ var v=pv(f); return '<input class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+ea(v)+'" value="'+ea(v)+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'; }
       function ta2(f,rows,ed){ var v=pv(f); return '<textarea class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+ea(v)+'" rows="'+(rows||2)+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'+esc(v)+'</textarea>'; }
       function dl2(f,list,ed){ var v=pv(f); return '<input class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+ea(v)+'" list="'+list+'" value="'+ea(v)+'" placeholder="선택" oninput="mark2(this)"'+(ed?'':' readonly')+'>'; }
+      // 조건부 선택(단어/구 → 품사, 일상어/전문어 → 전문 분야). two=2차
+      function cond(f,opts,target,enableVal,two,ed){ var v=it[f]||'', a=two?'data-f2':'data-f', cls=two?'w-field w2':'w-field', orig=two?' data-orig="'+ea(v)+'"':'', oc='onchange="'+(two?'mark2(this);':'')+'toggleCond(this)"'; var o=[''].concat(opts).map(function(x){return '<option value="'+ea(x)+'"'+(x===v?' selected':'')+'>'+(esc(x)||'선택')+'</option>';}).join(''); return '<select class="'+cls+'" '+a+'="'+esc(f)+'"'+orig+' data-target="'+esc(target)+'" data-enable="'+esc(enableVal)+'" '+oc+(ed?'':' disabled')+'>'+o+'</select>'; }
       var llmDef=String((it['GPT 정의문']||'')+' '+(it['GPT 설명문']||'')).trim();
       var h='<div class="cand-label">신어 집필</div><div class="cand-term">'+esc(it['신어 후보'])+'</div>'
         + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' → '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')
@@ -831,8 +834,9 @@
       h+='<div class="stage-sec s1"><div class="ss-head">📝 1차 작업 <span class="ss-who">작업자 '+esc(it['작업자']||'?')+'</span></div>'
         + '<div class="write-form">'
         + fld('색인표제어',inp('색인표제어',canField))+fld('등재표제어',inp('등재표제어',canField))
-        + fld('원어',inp('원어',canField))+fld('어종 표시',inp('어종 표시',canField))+fld('어원',inp('어원',canField))+fld('품사',inp('품사',canField))
-        + fld('전문 분야',dl('전문 분야','dl-jm',canField))+fld('의미 영역',dl('의미 영역','dl-um',canField))
+        + fld('원어',inp('원어',canField))+fld('어종 표시',inp('어종 표시',canField))+fld('어원',inp('어원',canField))
+        + fld('단어/구',cond('단어/구',['단어','구'],'품사','단어',false,canField))+fld('품사',inp('품사',canField))
+        + fld('일상어/전문어',cond('일상어/전문어',['일상어','전문어'],'전문 분야','전문어',false,canField))+fld('전문 분야',dl('전문 분야','dl-jm',canField))+fld('의미 영역',dl('의미 영역','dl-um',canField))
         + fld('뜻풀이',ta('뜻풀이',3,canField))+fld('용례',ta('용례',3,canField))
         + fld('용례 출처',inp('용례 출처',canField))+fld('용례 URL',inp('용례 URL',canField))
         + fld('수정 용례',ta('수정 용례',3,canField))
@@ -845,8 +849,9 @@
       h+='<div class="stage-sec s2"><div class="ss-head">🔎 2차 검수 <span class="ss-who">검수자 '+esc(it['검수자']||'?')+'</span></div>'
         + '<div class="write-form">'
         + fld('색인표제어',inp2('색인표제어',isR))+fld('등재표제어',inp2('등재표제어',isR))
-        + fld('원어',inp2('원어',isR))+fld('어종 표시',inp2('어종 표시',isR))+fld('어원',inp2('어원',isR))+fld('품사',inp2('품사',isR))
-        + fld('전문 분야',dl2('전문 분야','dl-jm',isR))+fld('의미 영역',dl2('의미 영역','dl-um',isR))
+        + fld('원어',inp2('원어',isR))+fld('어종 표시',inp2('어종 표시',isR))+fld('어원',inp2('어원',isR))
+        + fld('단어/구',cond('단어/구',['단어','구'],'품사','단어',true,isR))+fld('품사',inp2('품사',isR))
+        + fld('일상어/전문어',cond('일상어/전문어',['일상어','전문어'],'전문 분야','전문어',true,isR))+fld('전문 분야',dl2('전문 분야','dl-jm',isR))+fld('의미 영역',dl2('의미 영역','dl-um',isR))
         + fld('뜻풀이',ta2('뜻풀이',3,isR))+fld('용례',ta2('용례',3,isR))
         + fld('용례 출처',inp2('용례 출처',isR))+fld('용례 URL',inp2('용례 URL',isR))
         + fld('수정 용례',ta2('수정 용례',3,isR))
@@ -859,6 +864,7 @@
       h+='<datalist id="dl-jm">'+FIELD_67.map(function(x){return '<option value="『'+esc(x)+'』">';}).join('')+'</datalist>';
       h+='<datalist id="dl-um">'+FIELD_15.map(function(x){return '<option value="〔'+esc(x)+'〕">';}).join('')+'</datalist>';
       $('detail').innerHTML=h;
+      document.querySelectorAll('#detail select[data-target]').forEach(toggleCond);
     }
     function collectWrite_(stage){ var f={}; document.querySelectorAll('#detail .stage-sec.s'+(stage===2?2:1)+' .w-field').forEach(function(el){ var k=el.getAttribute('data-f2')||el.getAttribute('data-f'); if(k) f[k]=el.value; }); return f; }
     function saveWriteForm(stage, silent){
