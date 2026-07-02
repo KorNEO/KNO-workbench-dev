@@ -1,0 +1,4 @@
+# clasp push 대상 화이트리스트
+**/**
+!appsscript.json
+!Code.gs

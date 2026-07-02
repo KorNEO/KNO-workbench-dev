@@ -24,7 +24,19 @@ var VERDICTS = ['신어', '비신어', '판단 보류'];
 var STATUS = { NONE: '미작업', FIRST: '1차완료', SECOND: '2차완료' };
 var LOG_HEADERS = ['일시', 'ID', '신어 후보', '단계', '행위자', '판별', '메모', '이전 상태', '새 상태'];
 var FAILLOG_HEADERS = ['일시', '행위자', '기능', 'ID', '판별', '메모', '에러', '토큰'];
-var SAVE_FNS = { saveFirst: '1차', saveSecond: '2차' };
+var SAVE_FNS = { saveFirst: '1차', saveSecond: '2차', saveWrite: '집필' };
+
+// 집필(M5) 항목 스키마 — 판별과 별개
+var HEADERS_WRITE = [
+  'ID', '신어 후보', '작업자', '검수자', '배정 주차', '상태', '작업 구분', '1차 일시', '2차 일시',
+  '최초출현일', '추출 시기', 'GPT 의미 범주', 'GPT 정의문', 'GPT 설명문', 'GPT 용례',
+  '색인표제어', '등재표제어', '원어', '어종 표시', '어원', '품사', '전문 분야', '의미 영역',
+  '뜻풀이', '용례', '용례 출처', '용례 URL', '수정 용례', '집필 메모',
+  '1차 뜻풀이', '2차 뜻풀이', '검토 메모(뜻풀이·예문)', '검토 메모(형태부)', '검토자 메모'
+];
+// 집필자/검토자가 입력하는 필드(검토자는 전수 수정 가능)
+var WRITE_FIELDS = ['색인표제어', '등재표제어', '원어', '어종 표시', '어원', '품사', '전문 분야', '의미 영역', '뜻풀이', '용례', '용례 출처', '용례 URL', '수정 용례', '집필 메모', '검토 메모(뜻풀이·예문)', '검토 메모(형태부)', '검토자 메모'];
+function headersFor_(kind) { return kind === '집필' ? HEADERS_WRITE : HEADERS; }
 
 // 연구원 스키마: 구글계정1 이름2 역할3 초대일시4 응답상태5 수락일시6 token7 개인링크8 아이디9 비번해시10 소속11 성별12
 var USER_HDR = ['구글 계정', '이름', '역할', '초대 일시', '응답 상태', '수락 일시', '토큰', '개인 링크', '아이디', '비밀번호 해시', '소속', '성별'];
@@ -50,7 +62,7 @@ var API = {
   getResearchers: getResearchers, saveResearchers: saveResearchers,
   getAssignees: getAssignees, genAgree: genAgree, genReal: genReal,
   getProgress: getProgress, getItems: getItems, getItem: getItem,
-  saveFirst: saveFirst, saveSecond: saveSecond, logClientFail: logClientFail,
+  saveFirst: saveFirst, saveSecond: saveSecond, saveWrite: saveWrite, logClientFail: logClientFail,
   requestOtp: requestOtp, registerAccount: registerAccount, login: login
 };
 function doPost(e) {
@@ -251,32 +263,34 @@ function getProjects(token, kind) {
 function createProject(token, kind, name, csvText) {
   assertManager_(me_(token));
   name = String(name || '').trim() || '새 프로젝트';
+  var H = headersFor_(kind);
   var pid = (kind === '일치도' ? 'ag' : kind === '집필' ? 'wr' : 'rl') + '-' + Date.now().toString(36);
   try { folder_([DRIVE_ROOT, '원본 업로드', kindLabel_(kind)]).createFile(Utilities.newBlob(String(csvText || ''), 'text/csv', name + '.csv')); } catch (e) {}   // 원본 보관(재현성)
   var pss = SpreadsheetApp.create(name), fileId = pss.getId();   // 프로젝트 전용 스프레드시트
   try { var file = DriveApp.getFileById(fileId); folder_([DRIVE_ROOT, '프로젝트', kindLabel_(kind)]).addFile(file); DriveApp.getRootFolder().removeFile(file); } catch (e) {}
   var sh = pss.getSheets()[0]; sh.setName('항목');
-  sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  sh.getRange(1, 1, 1, H.length).setValues([H]);
   var t = Utilities.parseCsv(String(csvText || '').replace(/^﻿/, ''));
   var hdr = (t[0] || []).map(function (h) { return String(h).replace(/^﻿/, '').trim(); });
-  var col = {}; hdr.forEach(function (h, i) { if (HEADERS.indexOf(h) >= 0) col[h] = i; });
+  var col = {}; hdr.forEach(function (h, i) { if (H.indexOf(h) >= 0) col[h] = i; });
+  var CLEAR = ['작업자', '검수자', '배정 주차', '1차 판별', '1차 메모', '1차 일시', '2차 판별', '2차 메모', '2차 일시', '1차 뜻풀이', '2차 뜻풀이', '검토 메모(뜻풀이·예문)', '검토 메모(형태부)', '검토자 메모'];
   var out = [];
   for (var r = 1; r < t.length; r++) {
     var row = t[r]; if (!row || row.join('') === '') continue;
     var cand = col['신어 후보'] != null ? String(row[col['신어 후보']] || '').trim() : ''; if (!cand) continue;
     var o = [];
-    for (var c = 0; c < HEADERS.length; c++) {
-      var key = HEADERS[c], ci = col[key], v = (ci != null && row[ci] != null) ? row[ci] : '';
+    for (var c = 0; c < H.length; c++) {
+      var key = H[c], ci = col[key], v = (ci != null && row[ci] != null) ? row[ci] : '';
       if (key === 'ID') v = pid + '::' + (v || r);
       else if (key === '작업 구분') v = kind;
       else if (key === '상태') v = STATUS.NONE;
-      else if (['작업자', '검수자', '배정 주차', '1차 판별', '1차 메모', '1차 일시', '2차 판별', '2차 메모', '2차 일시'].indexOf(key) >= 0) v = '';
+      else if (CLEAR.indexOf(key) >= 0) v = '';
       o.push(v);
     }
     out.push(o);
   }
-  if (out.length) sh.getRange(2, 1, out.length, HEADERS.length).setValues(out);
-  styleHeader_(sh, HEADERS.length);
+  if (out.length) sh.getRange(2, 1, out.length, H.length).setValues(out);
+  styleHeader_(sh, H.length);
   projRegSheet_().appendRow([pid, name, kind, Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'), '미배분', fileId]);
   return { id: pid, name: name, items: out.length };
 }
@@ -389,7 +403,7 @@ function getItems(token, opts) {
     if (opts.status && st !== opts.status) continue;
     if (opts.onlyMine && !me.isManager && me.name !== w && me.name !== rv) continue;
     if (qy && g(r, '신어 후보').toLowerCase().indexOf(qy) === -1) continue;
-    var obj = {}, fields = full ? HEADERS : LIST_FIELDS;
+    var obj = {}, fields = full ? Object.keys(idx) : LIST_FIELDS;   // full=시트 실제 컬럼(판별·집필 공용)
     for (var h = 0; h < fields.length; h++) obj[fields[h]] = g(r, fields[h]);
     out.push(obj);
   }
@@ -401,7 +415,7 @@ function getItem(token, rowId) {
   var idx = headerIndex_(sh), rownum = findRow_(sh, idx, rowId);
   if (rownum < 0) throw new Error('행 없음: ' + rowId);
   var row = sh.getRange(rownum, 1, 1, sh.getLastColumn()).getValues()[0], obj = {};
-  for (var h = 0; h < HEADERS.length; h++) { var key = HEADERS[h]; obj[key] = key in idx ? String(row[idx[key]]) : ''; }
+  for (var key in idx) obj[key] = String(row[idx[key]]);   // 시트 실제 컬럼 전부(판별·집필 공용)
   return obj;
 }
 function getAssignees(kind, projectId) {   // 프론트가 (kind, pid)로 호출(토큰 없음)
@@ -464,13 +478,13 @@ function genReal(token, projectId, cfg) {
     for (var wk = 0; wk < weeks; wk++) { var take = wb + (wk < wr ? 1 : 0);
       for (var bi = 0; bi < take; bi++) { var rr = block[bp + bi];
         rr[C['ID']] = String(rr[C['ID']]).split('#')[0];
-        rr[C['작업 구분']] = '실제'; rr[C['작업자']] = pairs[pi][0]; rr[C['검수자']] = pairs[pi][1];
+        rr[C['작업 구분']] = p.type; rr[C['작업자']] = pairs[pi][0]; rr[C['검수자']] = pairs[pi][1];
         rr[C['배정 주차']] = String(wk + 1); rr[C['상태']] = STATUS.NONE; }
       bp += take; }
   }
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, lastCol).clearContent();
   if (rows.length) sh.getRange(2, 1, rows.length, lastCol).setValues(rows);
-  styleHeader_(sh, HEADERS.length);
+  styleHeader_(sh, lastCol);
   projSetStatus_(projectId, '배분완료');
   return { ok: true, rows: rows.length };
 }
@@ -522,6 +536,37 @@ function saveSecond(token, payload) {
     setCell_(sh, rownum, idx, '2차 일시', now_());
     setCell_(sh, rownum, idx, '상태', STATUS.SECOND);
     appendLog_(me, payload.row_id, cand, '2차', payload.verdict, payload.memo || '', prev, STATUS.SECOND);
+    SpreadsheetApp.flush(); opMark_(payload.op_id);
+    return { ok: true };
+  } finally { lock.releaseLock(); }
+}
+// 집필 저장: payload={row_id, stage(1|2), fields:{컬럼:값}, op_id}. 검토자(2차)는 전 필드 수정 가능.
+function saveWrite(token, payload) {
+  var me = me_(token);
+  var lock = LockService.getDocumentLock(); lock.waitLock(20000);
+  try {
+    if (opSeen_(payload.op_id)) return { ok: true, dup: true };
+    var sh = projSheetOfRow_(payload.row_id); if (!sh) throw new Error('프로젝트 없음');
+    var idx = headerIndex_(sh), rownum = findRow_(sh, idx, payload.row_id);
+    if (rownum < 0) throw new Error('행 없음: ' + payload.row_id);
+    var stage = (parseInt(payload.stage, 10) === 2) ? 2 : 1;
+    assertCanEditStage_(me, sh.getRange(rownum, idx['작업자'] + 1).getValue(), sh.getRange(rownum, idx['검수자'] + 1).getValue(), stage);
+    var cand = String(sh.getRange(rownum, idx['신어 후보'] + 1).getValue());
+    var prev = String(sh.getRange(rownum, idx['상태'] + 1).getValue()).trim();
+    var fields = payload.fields || {};
+    for (var k = 0; k < WRITE_FIELDS.length; k++) { var f = WRITE_FIELDS[k]; if (f in idx && f in fields) setCell_(sh, rownum, idx, f, fields[f] == null ? '' : fields[f]); }
+    var def = fields['뜻풀이'] == null ? '' : fields['뜻풀이'], ns;
+    if (stage === 1) {
+      if ('1차 뜻풀이' in idx) setCell_(sh, rownum, idx, '1차 뜻풀이', def);
+      if ('1차 일시' in idx) setCell_(sh, rownum, idx, '1차 일시', now_());
+      ns = ('2차 뜻풀이' in idx && String(sh.getRange(rownum, idx['2차 뜻풀이'] + 1).getValue()).trim()) ? STATUS.SECOND : STATUS.FIRST;
+    } else {
+      if ('2차 뜻풀이' in idx) setCell_(sh, rownum, idx, '2차 뜻풀이', def);
+      if ('2차 일시' in idx) setCell_(sh, rownum, idx, '2차 일시', now_());
+      ns = STATUS.SECOND;
+    }
+    if ('상태' in idx) setCell_(sh, rownum, idx, '상태', ns);
+    appendLog_(me, payload.row_id, cand, stage === 1 ? '집필1차' : '집필2차', String(def).slice(0, 40), '', prev, ns);
     SpreadsheetApp.flush(); opMark_(payload.op_id);
     return { ok: true };
   } finally { lock.releaseLock(); }

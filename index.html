@@ -62,6 +62,22 @@
     .cand-term { font-size:30px; font-weight:800; margin:2px 0 6px; }
     .cand-meta { color:#4a5168; font-size:14px; margin-bottom:18px; } .cand-meta b { color:var(--ink); }
     .llm-hint { display:inline-block; font-size:12px; color:var(--muted); background:#f1f3f9; padding:3px 10px; border-radius:8px; margin-bottom:8px; } .llm-hint b { color:var(--brand-d); }
+    /* 집필(M5) */
+    .llm-box { background:#f6f8ff; border:1px solid #e0e6ff; border-radius:10px; padding:12px 14px; margin:14px 0; }
+    .llm-box h3 { margin:0 0 8px; font-size:13px; color:var(--brand-d); }
+    .llm-box .row { display:flex; gap:10px; padding:4px 0; font-size:13px; } .llm-box .k { color:var(--muted); min-width:64px; } .llm-box .v { color:var(--ink); flex:1; white-space:pre-wrap; }
+    .diff-box { border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:14px 0; }
+    .diff-box h3 { margin:0 0 8px; font-size:13px; }
+    .drow { display:flex; gap:10px; padding:5px 0; border-top:1px solid var(--line); font-size:14px; } .drow:first-of-type { border-top:none; }
+    .drow .dl { min-width:56px; color:var(--muted); font-weight:700; font-size:12px; padding-top:2px; } .drow .dv { flex:1; white-space:pre-wrap; line-height:1.55; }
+    .diff-box mark { background:#fff2a8; color:#6b4e00; border-radius:3px; padding:0 2px; }
+    .write-form { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; margin-top:16px; }
+    .wf { display:flex; flex-direction:column; gap:4px; } .wf label { font-size:12px; font-weight:700; color:var(--muted); }
+    .wf:has(textarea) { grid-column:1 / -1; }
+    .w-field { width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:13px; box-sizing:border-box; }
+    .w-field:focus { outline:none; border-color:var(--brand); }
+    textarea.w-field { resize:vertical; }
+    .wf-sec { grid-column:1 / -1; font-weight:800; color:var(--brand-d); margin-top:8px; border-top:1px dashed var(--line); padding-top:12px; }
     .prior { background:#f7f8ff; border:1px solid #e2e6fb; border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:12px; } .prior .lab { color:var(--brand-d); font-weight:700; }
     .stages.two { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .stage-panel { border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:#fcfcff; margin-top:10px; }
@@ -675,7 +691,8 @@
         var st=String(it['상태']||'미작업');
         var v1=String(it['1차 판별']||'').trim(), v2=String(it['2차 판별']||'').trim();
         var label;
-        if(MODE==='agree'){ label = v1 || '미작업'; }
+        if(MODE==='write'){ label = statusLabel(st); }
+        else if(MODE==='agree'){ label = v1 || '미작업'; }
         else if(v1 && v2){ label = v1+' · '+v2+' · '+(v1===v2?'일치':'불일치'); }
         else if(v1){ label = v1; }
         else { label = '미작업'; }
@@ -725,6 +742,7 @@
     }
     function renderDetail(){
       var it=ITEMS[CUR];
+      if(MODE==='write'){ renderWriteDetail(it); return; }
       SEL={'1차':it['1차 판별']||'','2차':it['2차 판별']||''};
       var w1=canEdit(it,1), w2=canEdit(it,2);
       window.__activeStage = (MODE==='agree') ? '1차'
@@ -748,6 +766,59 @@
         + '<div class="ex-foot"><span>작성일 '+ymd(it['용례 일자'])+'</span><span>'+link(it['용례 URL'],'기사문 링크')+'</span><span>'+link(it['검색 URL'],'〈네이버 뉴스〉 검색 화면 링크')+'</span></div></div>';
       h += '<details class="llm-detail"><summary>LLM 판단 근거 자세히</summary><div class="row"><div class="k">LLM 판단 기준</div><div class="v">'+esc(it['LLM 판단 기준']||'-')+'</div></div><div class="row"><div class="k">LLM 판단 근거</div><div class="v">'+esc(it['LLM 판단 근거']||'-')+'</div></div></details>';
       $('detail').innerHTML=h;
+    }
+    // ── 집필(M5) ──
+    var FIELD_67=['교육','문학','민속','언어','역사','철학','인문 일반','경영','경제','군사','매체','법률','복지','심리','정치','행정','사회 일반','동물','물리','생명','수학','식물','지구','지리','천문','천연자원','해양','화학','환경','자연 일반','공업','광업','농업','서비스업','수산업','임업','산업 일반','수의','식품','약학','의학','한의','보건 일반','건설','교통','기계','재료','전기·전자','정보·통신','공학 일반','체육','연기','영상','무용','음악','미술','복식','공예','예체능 일반','가톨릭','기독교','불교','종교 일반','인명','지명','책명','고유명 일반'];
+    var FIELD_15=['인간','삶','식생활','의생활','주생활','사회생활','경제생활','교육','종교','문화','정치와 행정','자연','동식물','개념','보건·의학'];
+    function tok_(s){ return String(s||'').trim().split(/\s+/).filter(Boolean); }
+    function wordDiff_(prev, cur){
+      if(!String(cur||'').trim()) return '<span class="kbd">(없음)</span>';
+      var pset={}; tok_(prev).forEach(function(w){ pset[w]=(pset[w]||0)+1; });
+      return tok_(cur).map(function(w){ if(pset[w]>0){ pset[w]--; return esc(w); } return '<mark>'+esc(w)+'</mark>'; }).join(' ');
+    }
+    function refRow_(k,v){ return '<div class="row"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v||'-')+'</div></div>'; }
+    function renderWriteDetail(it){
+      var isRev=(ME.name===String(it['검수자']||'').trim());
+      var canW=ME.isManager||ME.name===String(it['작업자']||'').trim()||isRev;
+      window.__writeStage=isRev?2:1; DIRTY=false;
+      var ro=canW?'':' readonly';
+      function inp(f){ return '<input class="w-field" data-f="'+esc(f)+'" value="'+esc(it[f]||'')+'"'+ro+'>'; }
+      function ta(f,rows){ return '<textarea class="w-field" data-f="'+esc(f)+'" rows="'+(rows||2)+'"'+ro+'>'+esc(it[f]||'')+'</textarea>'; }
+      function dl(f,list){ return '<input class="w-field" data-f="'+esc(f)+'" list="'+list+'" value="'+esc(it[f]||'')+'" placeholder="검색·선택"'+ro+'>'; }
+      function fld(label,ctrl){ return '<div class="wf"><label>'+esc(label)+'</label>'+ctrl+'</div>'; }
+      var llmDef=String((it['GPT 정의문']||'')+' '+(it['GPT 설명문']||'')).trim();
+      var h='<div class="cand-label">신어 집필</div><div class="cand-term">'+esc(it['신어 후보'])+'</div>'
+        + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' → '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')+'</div>';
+      h+='<div class="llm-box"><h3>🤖 GPT 1차 초안</h3>'+refRow_('의미 범주',it['GPT 의미 범주'])+refRow_('정의문',it['GPT 정의문'])+refRow_('설명문',it['GPT 설명문'])+refRow_('용례',it['GPT 용례'])+'</div>';
+      h+='<div class="diff-box"><h3>✍️ 뜻풀이 변경 이력 <span class="kbd">(변경분 하이라이트)</span></h3>'
+        + '<div class="drow"><span class="dl">LLM</span><div class="dv">'+esc(llmDef||'(없음)')+'</div></div>'
+        + '<div class="drow"><span class="dl">인간 1차</span><div class="dv">'+wordDiff_(llmDef,it['1차 뜻풀이'])+'</div></div>'
+        + '<div class="drow"><span class="dl">인간 2차</span><div class="dv">'+wordDiff_(it['1차 뜻풀이'],it['2차 뜻풀이'])+'</div></div></div>';
+      h+='<div class="write-form">'
+        + fld('색인표제어',inp('색인표제어'))+fld('등재표제어',inp('등재표제어'))
+        + fld('원어',inp('원어'))+fld('어종 표시',inp('어종 표시'))+fld('어원',inp('어원'))+fld('품사',inp('품사'))
+        + fld('전문 분야',dl('전문 분야','dl-jm'))+fld('의미 영역',dl('의미 영역','dl-um'))
+        + fld('뜻풀이',ta('뜻풀이',3))+fld('용례',ta('용례',3))
+        + fld('용례 출처',inp('용례 출처'))+fld('용례 URL',inp('용례 URL'))
+        + fld('수정 용례',ta('수정 용례',3))+fld('집필 메모',ta('집필 메모',2))
+        + '<div class="wf-sec">🔎 검토자 입력</div>'
+        + fld('검토 메모(뜻풀이·예문)',ta('검토 메모(뜻풀이·예문)',2))+fld('검토 메모(형태부)',ta('검토 메모(형태부)',2))+fld('검토자 메모',ta('검토자 메모',2))
+        + '</div>';
+      h+='<div style="margin-top:14px">'+(canW?'<button class="btn save" onclick="saveWriteForm(false)">'+(window.__writeStage===2?'2차 검토 저장':'1차 집필 저장')+'</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">읽기 전용</span>')+'</div>';
+      h+='<datalist id="dl-jm">'+FIELD_67.map(function(x){return '<option value="'+esc(x)+'">';}).join('')+'</datalist>';
+      h+='<datalist id="dl-um">'+FIELD_15.map(function(x){return '<option value="'+esc(x)+'">';}).join('')+'</datalist>';
+      $('detail').innerHTML=h;
+      document.querySelectorAll('#detail .w-field').forEach(function(el){ el.addEventListener('input', function(){ DIRTY=true; setSaveBadge('자동 저장 중…',false); clearTimeout(AUTO_TIMER); AUTO_TIMER=setTimeout(function(){ if(DIRTY) saveWriteForm(true); },1200); }); });
+    }
+    function collectWrite_(){ var f={}; document.querySelectorAll('#detail .w-field').forEach(function(el){ f[el.getAttribute('data-f')]=el.value; }); return f; }
+    function saveWriteForm(silent){
+      var it=ITEMS[CUR]; if(!it) return;
+      var fields=collectWrite_(), stage=window.__writeStage||1;
+      for(var k in fields) it[k]=fields[k]; if(stage===1) it['1차 뜻풀이']=fields['뜻풀이']||''; else it['2차 뜻풀이']=fields['뜻풀이']||'';
+      DIRTY=false;
+      google.script.run.withSuccessHandler(function(){ setSaveBadge('저장 완료',false); if(!silent) toast('저장했습니다.'); })
+        .withFailureHandler(function(e){ setSaveBadge('저장 실패',true); if(!silent) toast('실패: '+e.message); })
+        .saveWrite(TOKEN,{ row_id:it['ID'], stage:stage, fields:fields, op_id:newOpId() });
     }
     function pick(stage,v){ SEL[stage]=v; document.querySelectorAll('.verdicts[data-stage="'+stage+'"] .vcard').forEach(function(c){ c.classList.toggle('on', c.getAttribute('data-v')===v); }); markDirty(); }
 
