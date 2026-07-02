@@ -458,7 +458,7 @@
 
     /* 프로젝트 목록 / 새 프로젝트(CSV 업로드) */
     function renderProjects(){
-      $('proj-title').textContent = (MODE==='agree'?'연구자 일치도 작업':'신어 판별 작업');
+      $('proj-title').textContent = (MODE==='agree'?'연구자 일치도 작업':MODE==='write'?'신어 집필 작업':'신어 판별 작업');
       $('proj-new-btn').style.display = ME.isManager ? '' : 'none';
       $('proj-list').innerHTML='<span class="kbd">불러오는 중…</span>';
       google.script.run.withSuccessHandler(function(list){ PROJ_LIST=list||[];
@@ -620,7 +620,7 @@
       return '<div class="bar"><span class="seg-first" style="width:'+p(first)+'%"></span><span class="seg-done" style="width:'+p(done)+'%"></span></div>';
     }
     function loadProgress(){
-      $('home-title').textContent = (MODE==='agree'?'연구자 일치도':'신어 판별')+' — 전체 진행률';
+      $('home-title').textContent = (MODE==='agree'?'연구자 일치도':MODE==='write'?'신어 집필':'신어 판별')+' — 전체 진행률';
       $('overall').innerHTML='<span class="kbd">불러오는 중…</span>'; $('second-body').innerHTML='';
       google.script.run.withSuccessHandler(function(p){
         var o=p.overall, done=o['2차완료']||0, doneLabel=(MODE==='agree'?'판별 완료':'2차 검수 완료');
@@ -1055,7 +1055,7 @@
       var pairs=[].slice.call(document.querySelectorAll('#team-body tr')).map(function(tr){ return [tr.querySelector('.t-w').value, tr.querySelector('.t-r').value]; }).filter(function(p){ return p[0]&&p[1]; });
       if(!pairs.length){ toast('팀을 하나 이상 지정하세요.'); return; }
       var weeks=parseInt($('asg-weeks').value,10)||4, perWeek=parseInt($('asg-perweek').value,10)||0;
-      if(!confirm('["'+CURRENT_PROJECT.name+'"] '+pairs.length+'개 팀 · '+weeks+'주로 균등 배분할까요?\n기존 신어 판별 데이터는 사라집니다.')) return;
+      if(!confirm('["'+CURRENT_PROJECT.name+'"] '+pairs.length+'개 팀 · '+weeks+'주로 균등 배분할까요?\n기존 '+(MODE==='write'?'신어 집필':'신어 판별')+' 데이터는 사라집니다.')) return;
       $('real-msg').textContent='배분 중…';
       google.script.run.withSuccessHandler(function(res){ $('real-msg').textContent='완료: '+((res&&res.rows)||0).toLocaleString()+'행 / '+pairs.length+'팀 · '+weeks+'주'; loadProgress(); })
         .withFailureHandler(function(e){ $('real-msg').textContent='실패: '+e.message; }).genReal(TOKEN, pid, { pairs:pairs, weeks:weeks, perWeek:perWeek });
