@@ -274,7 +274,7 @@ function createProject(token, kind, name, csvText) {
   var t = Utilities.parseCsv(String(csvText || '').replace(/^﻿/, ''));
   var hdr = (t[0] || []).map(function (h) { return String(h).replace(/^﻿/, '').trim(); });
   var col = {}; hdr.forEach(function (h, i) { if (H.indexOf(h) >= 0) col[h] = i; });
-  var CLEAR = ['작업자', '검수자', '배정 주차', '1차 판별', '1차 메모', '1차 일시', '2차 판별', '2차 메모', '2차 일시', '1차 뜻풀이', '2차 뜻풀이', '검토 메모(뜻풀이·예문)', '검토 메모(형태부)', '검토자 메모'];
+  var CLEAR = ['작업자', '검수자', '배정 주차', '1차 판별', '1차 메모', '1차 일시', '2차 판별', '2차 메모', '2차 일시'];   // 배정·판별 추적만 초기화(집필 내용·1차/2차 뜻풀이·메모는 보존)
   var out = [];
   for (var r = 1; r < t.length; r++) {
     var row = t[r]; if (!row || row.join('') === '') continue;
