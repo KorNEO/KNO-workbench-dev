@@ -78,9 +78,14 @@
     .w-field:focus { outline:none; border-color:var(--brand); }
     textarea.w-field { resize:vertical; }
     .wf-sec { grid-column:1 / -1; font-weight:800; color:var(--brand-d); margin-top:8px; border-top:1px dashed var(--line); padding-top:12px; }
-    .stage-sec { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:14px 0; }
-    .stage-sec.s1 { border-left:4px solid #7c8cf0; } .stage-sec.s2 { border-left:4px solid var(--sineo); }
-    .ss-head { font-weight:800; font-size:15px; margin-bottom:10px; } .ss-head .ss-who { font-weight:600; font-size:12px; color:var(--muted); margin-left:8px; }
+    .write-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; margin:14px 0; }
+    @media (max-width:900px){ .write-cols { grid-template-columns:1fr; } }
+    .stage-sec { border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+    .stage-sec .write-form { grid-template-columns:1fr; margin-top:10px; }
+    .stage-sec.s1 { background:#fff5f5; border-left:4px solid #f0a3a3; }
+    .stage-sec.s2 { background:#f4f8ff; border-left:4px solid #a3c0f0; }
+    .ss-head { font-weight:800; font-size:15px; margin-bottom:6px; } .ss-head .ss-who { font-weight:600; font-size:12px; color:var(--muted); margin-left:8px; }
+    .w-field.changed { background:#dbe9ff; border-color:#6f9bf0; }
     .sym-bar { margin:12px 0; font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
     .sym-bar .sym { border:1px solid var(--line); background:#fff; border-radius:6px; padding:3px 9px; font-size:14px; cursor:pointer; color:var(--ink); }
     .sym-bar .sym:hover { background:#eef1ff; border-color:var(--brand); }
@@ -800,6 +805,7 @@
       var a=el.selectionStart||0, b=el.selectionEnd||0, v=el.value;
       el.value=v.slice(0,a)+s+v.slice(b); el.focus(); try{ el.selectionStart=el.selectionEnd=a+s.length; }catch(e){}
     }
+    function mark2(el){ el.classList.toggle('changed', String(el.value)!==String(el.getAttribute('data-orig')||'')); }
     function renderWriteDetail(it){
       var isW=(ME.isManager||ME.name===String(it['작업자']||'').trim());
       var isR=(ME.isManager||ME.name===String(it['검수자']||'').trim());
@@ -810,18 +816,23 @@
       function ta(f,rows,ed){ return '<textarea class="w-field" data-f="'+esc(f)+'" rows="'+(rows||2)+'"'+(ed?'':' readonly')+'>'+esc(pv(f))+'</textarea>'; }
       function dl(f,list,ed){ return '<input class="w-field" data-f="'+esc(f)+'" list="'+list+'" value="'+esc(pv(f))+'" placeholder="검색·선택"'+(ed?'':' readonly')+'>'; }
       function fld(label,ctrl){ return '<div class="wf"><label>'+esc(label)+'</label>'+ctrl+'</div>'; }
+      function ov(f){ return esc(it[f]||''); }
+      function inp2(f,ed){ var v=ov(f); return '<input class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+v+'" value="'+v+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'; }
+      function ta2(f,rows,ed){ var v=ov(f); return '<textarea class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+v+'" rows="'+(rows||2)+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'+v+'</textarea>'; }
+      function dl2(f,list,ed){ var v=ov(f); return '<input class="w-field w2" data-f2="'+esc(f)+'" data-orig="'+v+'" list="'+list+'" value="'+v+'" oninput="mark2(this)"'+(ed?'':' readonly')+'>'; }
       var llmDef=String((it['GPT 정의문']||'')+' '+(it['GPT 설명문']||'')).trim();
       var h='<div class="cand-label">신어 집필</div><div class="cand-term">'+esc(it['신어 후보'])+'</div>'
         + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' → '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')+'</div>';
       h+='<div class="llm-box"><h3>🤖 GPT 1차 초안</h3>'+refRow_('의미 범주',it['GPT 의미 범주'])+refRow_('정의문',it['GPT 정의문'])+refRow_('설명문',it['GPT 설명문'])+refRow_('용례',it['GPT 용례'])+'</div>';
       h+='<div class="diff-box"><h3>✍️ 뜻풀이 변경 이력 <span class="kbd">(변경분 하이라이트)</span></h3>'
         + '<div class="drow"><span class="dl">LLM</span><div class="dv">'+esc(llmDef||'(없음)')+'</div></div>'
-        + '<div class="drow"><span class="dl">인간 1차</span><div class="dv">'+wordDiff_(llmDef,it['1차 뜻풀이'])+'</div></div>'
-        + '<div class="drow"><span class="dl">인간 2차</span><div class="dv">'+wordDiff_(it['1차 뜻풀이'],it['2차 뜻풀이'])+'</div></div></div>';
+        + '<div class="drow"><span class="dl">작업자</span><div class="dv">'+wordDiff_(llmDef,it['1차 뜻풀이'])+'</div></div>'
+        + '<div class="drow"><span class="dl">검수자</span><div class="dv">'+wordDiff_(it['1차 뜻풀이'],it['2차 뜻풀이'])+'</div></div></div>';
       var SYMS=['^','·','-','▼','▽','←','▾','¶','≪','≫','“','”','‘','’','『』','「」','〔〕','【】','「구」','<영>','<한>','<일>','<프>'];
       h+='<div class="sym-bar">기호 삽입: '+SYMS.map(function(s){ return '<button type="button" class="sym" onclick="insertSym(\''+s+'\')">'+esc(s)+'</button>'; }).join('')+' <span class="kbd">(칸 클릭 후 누르면 커서 위치에 삽입)</span></div>';
-      // ① 1차 집필(작업자)
-      h+='<div class="stage-sec s1"><div class="ss-head">✍️ 1차 집필 <span class="ss-who">작업자 '+esc(it['작업자']||'?')+'</span></div>'
+      h+='<div class="write-cols">';
+      // ← 1차 작업(작업자)
+      h+='<div class="stage-sec s1"><div class="ss-head">📝 1차 작업 <span class="ss-who">작업자 '+esc(it['작업자']||'?')+'</span></div>'
         + '<div class="write-form">'
         + fld('색인표제어',inp('색인표제어',canField))+fld('등재표제어',inp('등재표제어',canField))
         + fld('원어',inp('원어',canField))+fld('어종 표시',inp('어종 표시',canField))+fld('어원',inp('어원',canField))+fld('품사',inp('품사',canField))
@@ -830,25 +841,33 @@
         + fld('용례 출처',inp('용례 출처',canField))+fld('용례 URL',inp('용례 URL',canField))
         + fld('수정 용례',ta('수정 용례',3,canField))+fld('집필 메모',ta('집필 메모',2,canField))
         + '</div>'
-        + (isW?'<button class="btn save" onclick="saveWriteForm(1,false)">1차 집필 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">1차 집필 담당자만 저장</span>')
+        + (isW?'<button class="btn save" onclick="saveWriteForm(1,false)">1차 작업 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">작업자만 저장</span>')
         + '</div>';
-      // ② 2차 검토(검수자)
-      h+='<div class="stage-sec s2"><div class="ss-head">🔎 2차 검토 <span class="ss-who">검수자 '+esc(it['검수자']||'?')+'</span></div>'
-        + (isR?'<div class="kbd" style="margin:2px 0 8px">검수자는 위 1차 집필 필드도 직접 수정한 뒤 이 버튼으로 저장합니다(전수 수정).</div>':'')
+      // → 2차 검수(검수자) — 1차 복사본, 변경분 하이라이트
+      h+='<div class="stage-sec s2"><div class="ss-head">🔎 2차 검수 <span class="ss-who">검수자 '+esc(it['검수자']||'?')+'</span></div>'
+        + '<div class="kbd" style="margin:2px 0 8px">1차 값이 복사돼 있어요. 수정한 칸은 파란색으로 표시됩니다.</div>'
         + '<div class="write-form">'
+        + fld('색인표제어',inp2('색인표제어',isR))+fld('등재표제어',inp2('등재표제어',isR))
+        + fld('원어',inp2('원어',isR))+fld('어종 표시',inp2('어종 표시',isR))+fld('어원',inp2('어원',isR))+fld('품사',inp2('품사',isR))
+        + fld('전문 분야',dl2('전문 분야','dl-jm',isR))+fld('의미 영역',dl2('의미 영역','dl-um',isR))
+        + fld('뜻풀이',ta2('뜻풀이',3,isR))+fld('용례',ta2('용례',3,isR))
+        + fld('용례 출처',inp2('용례 출처',isR))+fld('용례 URL',inp2('용례 URL',isR))
+        + fld('수정 용례',ta2('수정 용례',3,isR))+fld('집필 메모',ta2('집필 메모',2,isR))
+        + '<div class="wf-sec">🔎 검토 메모</div>'
         + fld('검토 메모(뜻풀이·예문)',ta('검토 메모(뜻풀이·예문)',2,isR))+fld('검토 메모(형태부)',ta('검토 메모(형태부)',2,isR))+fld('검토자 메모',ta('검토자 메모',2,isR))
         + '</div>'
-        + (isR?'<button class="btn save" onclick="saveWriteForm(2,false)">2차 검토 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">검수자만 저장</span>')
+        + (isR?'<button class="btn save" onclick="saveWriteForm(2,false)">2차 검수 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">검수자만 저장</span>')
         + '</div>';
+      h+='</div>';
       h+='<datalist id="dl-jm">'+FIELD_67.map(function(x){return '<option value="『'+esc(x)+'』">';}).join('')+'</datalist>';
       h+='<datalist id="dl-um">'+FIELD_15.map(function(x){return '<option value="〔'+esc(x)+'〕">';}).join('')+'</datalist>';
       $('detail').innerHTML=h;
       document.querySelectorAll('#detail .w-field').forEach(function(el){ el.addEventListener('focus',function(){ LAST_FIELD=el; }); });
     }
-    function collectWrite_(){ var f={}; document.querySelectorAll('#detail .w-field').forEach(function(el){ f[el.getAttribute('data-f')]=el.value; }); return f; }
+    function collectWrite_(stage){ var f={}; document.querySelectorAll('#detail .stage-sec.s'+(stage===2?2:1)+' .w-field').forEach(function(el){ var k=el.getAttribute('data-f2')||el.getAttribute('data-f'); if(k) f[k]=el.value; }); return f; }
     function saveWriteForm(stage, silent){
       var it=ITEMS[CUR]; if(!it) return;
-      var fields=collectWrite_();
+      var fields=collectWrite_(stage);
       for(var k in fields) it[k]=fields[k];
       if(stage===1) it['1차 뜻풀이']=fields['뜻풀이']||''; else it['2차 뜻풀이']=fields['뜻풀이']||'';
       if(String(it['ID']||'').indexOf('demo::')===0){ setSaveBadge('데모 — 저장 안 함',false); if(!silent) toast('데모: 저장 안 함'); return; }
