@@ -806,8 +806,10 @@
       var isW=(ME.isManager||ME.name===String(it['작업자']||'').trim());
       var isR=(ME.isManager||ME.name===String(it['검수자']||'').trim());
       var canField=isW||isR;   // 집필 필드: 작업자 또는 검수자(전수 수정)
-      var TPL={'원어':'()','품사':'「」','어원':'【】'};   // 빈 칸에 기호 미리 채움
-      function pv(f){ var x=it[f]||''; return (!x && TPL[f]) ? TPL[f] : x; }
+      var TPL={'원어':'()','품사':'「」','어원':'【】','용례':'¶','수정 용례':'¶','용례 출처':'≪≫'};   // 빈 칸에 기호 미리 채움
+      function pv(f){ var x=it[f]||''; if(x) return x;
+        if(f==='X년 Y월 신어'){ var m=String(it['추출 시기']||'').match(/(\d{4})\.(\d{1,2})/); return m ? '【'+m[1]+'년 '+parseInt(m[2],10)+'월 신어】' : '【    년   월 신어】'; }
+        return TPL[f]||''; }
       function ea(s){ return esc(String(s==null?'':s)).replace(/"/g,'&quot;'); }   // 속성값 이스케이프
       function inp(f,ed){ return '<input class="w-field" data-f="'+esc(f)+'" value="'+ea(pv(f))+'"'+(ed?'':' readonly')+'>'; }
       function ta(f,rows,ed){ return '<textarea class="w-field" data-f="'+esc(f)+'" rows="'+(rows||2)+'"'+(ed?'':' readonly')+'>'+esc(pv(f))+'</textarea>'; }
@@ -821,7 +823,7 @@
       function cond(f,opts,target,enableVal,two,ed){ var v=it[f]||'', a=two?'data-f2':'data-f', cls=two?'w-field w2':'w-field', orig=two?' data-orig="'+ea(v)+'"':'', oc='onchange="'+(two?'mark2(this);':'')+'toggleCond(this)"'; var o=[''].concat(opts).map(function(x){return '<option value="'+ea(x)+'"'+(x===v?' selected':'')+'>'+(esc(x)||'선택')+'</option>';}).join(''); return '<select class="'+cls+'" '+a+'="'+esc(f)+'"'+orig+' data-target="'+esc(target)+'" data-enable="'+esc(enableVal)+'" '+oc+(ed?'':' disabled')+'>'+o+'</select>'; }
       var llmDef=String((it['GPT 정의문']||'')+' '+(it['GPT 설명문']||'')).trim();
       var h='<div class="cand-label">신어 집필</div><div class="cand-term">'+esc(it['신어 후보'])+'</div>'
-        + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' → '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')
+        + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' - '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')
         + (String(it['ID']||'').indexOf('::new-')>=0 ? ' &nbsp; <button class="btn ghost del-item" onclick="deleteWriteItem()">🗑 새 항목 삭제</button>' : '')
         + '</div>';
       h+='<div class="llm-box"><h3>🤖 GPT 1차 초안</h3>'+refRow_('의미 범주',it['GPT 의미 범주'])+refRow_('정의문',it['GPT 정의문'])+refRow_('설명문',it['GPT 설명문'])+refRow_('용례',it['GPT 용례'])+'</div>';
@@ -841,6 +843,7 @@
         + fld('작성례',ta('수정 용례',3,canField))
         + '<div class="wf-sec">📎 참고 용례</div>'
         + fld('용례',ta('용례',3,canField))+fld('용례 출처',inp('용례 출처',canField))+fld('용례 URL',inp('용례 URL',canField))
+        + fld('X년 Y월 신어',inp('X년 Y월 신어',canField))
         + '<div class="wf-sec">📝 작업 메모</div>'
         + fld('형태부',ta('집필 메모(형태부)',2,canField))+fld('의미부',ta('집필 메모(의미부)',2,canField))
         + '</div>'
@@ -857,6 +860,7 @@
         + fld('작성례',ta2('수정 용례',3,isR))
         + '<div class="wf-sec">📎 참고 용례</div>'
         + fld('용례',ta2('용례',3,isR))+fld('용례 출처',inp2('용례 출처',isR))+fld('용례 URL',inp2('용례 URL',isR))
+        + fld('X년 Y월 신어',inp2('X년 Y월 신어',isR))
         + '<div class="wf-sec">🔎 검수 메모</div>'
         + fld('형태부',ta('검수 메모(형태부)',2,isR))+fld('의미부',ta('검수 메모(의미부)',2,isR))
         + '</div>'
