@@ -557,7 +557,26 @@
       showView('landing');
     }).withFailureHandler(function(e){ try{ localStorage.removeItem('kno_token'); }catch(x){} TOKEN=''; showLogin(); }).getBootstrap(TOKEN);
     }
+    // 데모 프리뷰: ?demo=write → 로그인/백엔드 없이 샘플로 집필 폼 즉시 표시(개발용)
+    function renderWriteDemo(){
+      ME={email:'',name:'안진산',role:'검수자',isManager:true}; MODE='write';
+      var sample={ 'ID':'demo::1','신어 후보':'원영적사고','작업자':'김유정','검수자':'안진산','배정 주차':'1','상태':'1차완료',
+        '최초출현일':'2024-05-03','추출 시기':'2024.04',
+        'GPT 의미 범주':'개념','GPT 정의문':'장원영이라는 특정 인물의 사고방식을 모방하거나 그에 영향을 받는 사고 경향',
+        'GPT 설명문':'원영적사고는 아이돌 그룹 멤버 장원영의 독특한 사고방식이나 가치관을 모방하거나 그로부터 영향을 받는 사고 경향을 의미한다.',
+        'GPT 용례':'그녀의 팬들은 원영적사고를 통해 긍정적이고 자신감 있는 태도를 배우고 있다.',
+        '색인표제어':'원영적사고','등재표제어':'원영적 사고','원어':'(員瑛的思考)','어종 표시':'(한+한)_한','어원':'','품사':'「구」',
+        '전문 분야':'','의미 영역':'개념',
+        '1차 뜻풀이':'어렵거나 힘든 상황을 긍정적으로 해석하고 받아들이는 사고방식.',
+        '2차 뜻풀이':'어렵거나 힘든 상황도 긍정적으로 해석해 받아들이는 사고방식. 걸그룹 아이브 장원영의 일화에서 비롯된 표현이다.',
+        '뜻풀이':'어렵거나 힘든 상황도 긍정적으로 해석해 받아들이는 사고방식. 걸그룹 아이브 장원영의 일화에서 비롯된 표현이다.',
+        '용례':'','용례 출처':'','용례 URL':'','수정 용례':'','집필 메모':'','검토 메모(뜻풀이·예문)':'','검토 메모(형태부)':'','검토자 메모':'' };
+      ITEMS=[sample]; CUR=0; SCOPE='mine';
+      $('nav').style.display='none'; $('view-landing').classList.add('hidden'); $('view-work').classList.remove('hidden');
+      renderList(); renderWriteDetail(sample);
+    }
     (function init(){
+      if((new URLSearchParams(location.search)).get('demo')==='write'){ renderWriteDemo(); return; }
       if(!TOKEN){ try{ TOKEN = localStorage.getItem('kno_token') || ''; }catch(e){} }
       if(TOKEN) doBootstrap(); else showLogin();
     })();
