@@ -839,7 +839,9 @@
         + fld('전문 분야',dl('전문 분야','dl-jm',canField))+fld('의미 영역',dl('의미 영역','dl-um',canField))
         + fld('뜻풀이',ta('뜻풀이',3,canField))+fld('용례',ta('용례',3,canField))
         + fld('용례 출처',inp('용례 출처',canField))+fld('용례 URL',inp('용례 URL',canField))
-        + fld('수정 용례',ta('수정 용례',3,canField))+fld('집필 메모',ta('집필 메모',2,canField))
+        + fld('수정 용례',ta('수정 용례',3,canField))
+        + '<div class="wf-sec">📝 작업 메모</div>'
+        + fld('형태부',ta('집필 메모(형태부)',2,canField))+fld('의미부',ta('집필 메모(의미부)',2,canField))
         + '</div>'
         + (isW?'<button class="btn save" onclick="saveWriteForm(1,false)">1차 작업 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">작업자만 저장</span>')
         + '</div>';
@@ -852,9 +854,9 @@
         + fld('전문 분야',dl2('전문 분야','dl-jm',isR))+fld('의미 영역',dl2('의미 영역','dl-um',isR))
         + fld('뜻풀이',ta2('뜻풀이',3,isR))+fld('용례',ta2('용례',3,isR))
         + fld('용례 출처',inp2('용례 출처',isR))+fld('용례 URL',inp2('용례 URL',isR))
-        + fld('수정 용례',ta2('수정 용례',3,isR))+fld('집필 메모',ta2('집필 메모',2,isR))
+        + fld('수정 용례',ta2('수정 용례',3,isR))
         + '<div class="wf-sec">🔎 검토 메모</div>'
-        + fld('검토 메모(뜻풀이·예문)',ta('검토 메모(뜻풀이·예문)',2,isR))+fld('검토 메모(형태부)',ta('검토 메모(형태부)',2,isR))+fld('검토자 메모',ta('검토자 메모',2,isR))
+        + fld('형태부',ta('검토 메모(형태부)',2,isR))+fld('의미부',ta('검토 메모(의미부)',2,isR))
         + '</div>'
         + (isR?'<button class="btn save" onclick="saveWriteForm(2,false)">2차 검수 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">검수자만 저장</span>')
         + '</div>';
