@@ -315,6 +315,7 @@
               <option value="2차완료">2차 검수 완료</option>
             </select>
           </div>
+          <button id="btn-add-item" class="btn ghost" onclick="addNewWriteItem()" style="display:none;width:100%;margin-bottom:8px">+ 새 항목 추가</button>
           <div id="list"></div>
         </aside>
         <div class="detail-col" id="detail"><div class="placeholder">왼쪽에서 신어 후보 항목을 선택하세요.</div></div>
@@ -444,6 +445,7 @@
       $('view-projects').classList.toggle('hidden', v!=='projects');
       $('view-home').classList.toggle('hidden', v!=='home');
       $('view-work').classList.toggle('hidden', v!=='mine' && v!=='all');
+      $('btn-add-item').style.display=((v==='mine'||v==='all') && MODE==='write')?'block':'none';
       $('view-researchers').classList.toggle('hidden', v!=='researchers');
       if(v==='projects') renderProjects();
       else if(v==='home'){ loadProgress(); loadAssign(); }
@@ -570,6 +572,7 @@
     function renderWriteDemo(){
       ME={email:'',name:'안진산',role:'검수자',isManager:true}; MODE='write'; SCOPE='mine';
       $('nav').style.display='none'; $('view-landing').classList.add('hidden'); $('view-work').classList.remove('hidden');
+      $('btn-add-item').style.display='block';
       $('detail').innerHTML='<div class="placeholder">데모 데이터 불러오는 중…</div>';
       fetch('demo_write.json').then(function(r){ return r.json(); }).then(function(rows){
         ITEMS=rows; CUR=-1; renderList();
@@ -864,6 +867,16 @@
       google.script.run.withSuccessHandler(function(){ setSaveBadge('저장 완료',false); if(!silent) toast((stage===2?'2차 검토':'1차 집필')+' 저장 완료'); })
         .withFailureHandler(function(e){ setSaveBadge('저장 실패',true); if(!silent) toast('실패: '+e.message); })
         .saveWrite(TOKEN,{ row_id:it['ID'], stage:stage, fields:fields, op_id:newOpId() });
+    }
+    function addNewWriteItem(){
+      var cand=prompt('새 표제어(신어 후보)를 입력하세요:'); if(cand===null) return;
+      cand=String(cand).trim(); if(!cand){ toast('표제어를 입력하세요.'); return; }
+      function addLocal(id){ var it={'__full':true,'ID':id,'신어 후보':cand,'작업자':(ME.isManager?'':ME.name)||'','검수자':'','배정 주차':'','상태':'미작업'}; ITEMS.unshift(it); CUR=0; renderList(); renderWriteDetail(it); }
+      if((new URLSearchParams(location.search)).get('demo')==='write'){ addLocal('demo::new-'+Date.now().toString(36)); return; }
+      var pid=CURRENT_PROJECT&&CURRENT_PROJECT.id; if(!pid){ toast('먼저 프로젝트를 여세요.'); return; }
+      google.script.run.withSuccessHandler(function(r){ addLocal(r.id); toast('새 항목을 추가했습니다.'); })
+        .withFailureHandler(function(e){ toast('실패: '+e.message); })
+        .addWriteItem(TOKEN, pid, cand);
     }
     function pick(stage,v){ SEL[stage]=v; document.querySelectorAll('.verdicts[data-stage="'+stage+'"] .vcard').forEach(function(c){ c.classList.toggle('on', c.getAttribute('data-v')===v); }); markDirty(); }
 
