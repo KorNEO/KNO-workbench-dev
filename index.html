@@ -557,26 +557,15 @@
       showView('landing');
     }).withFailureHandler(function(e){ try{ localStorage.removeItem('kno_token'); }catch(x){} TOKEN=''; showLogin(); }).getBootstrap(TOKEN);
     }
-    // 데모 프리뷰: ?demo=write → 로그인/백엔드 없이 샘플로 집필 폼 즉시 표시(개발용)
+    // 데모 프리뷰: ?demo=write → 로그인/백엔드 없이 xlsx 실제 항목 목록으로 집필 폼 표시(개발용)
     function renderWriteDemo(){
-      ME={email:'',name:'안진산',role:'검수자',isManager:true}; MODE='write';
-      var sample={ '__full':true,'ID':'demo::1','신어 후보':'원영적사고','작업자':'안진산','검수자':'현영희','배정 주차':'1','상태':'2차완료',
-        '최초출현일':'2024-05-03','추출 시기':'2024.04',
-        'GPT 의미 범주':'개념','GPT 정의문':'장원영이라는 특정 인물의 사고방식을 모방하거나 그에 영향을 받는 사고 경향',
-        'GPT 설명문':'원영적사고는 아이돌 그룹 멤버 장원영의 독특한 사고방식이나 가치관을 모방하거나 그로부터 영향을 받는 사고 경향을 의미한다. 이는 주로 팬들 사이에서 사용되는 표현이다.',
-        'GPT 용례':'그녀의 팬들은 원영적사고를 통해 긍정적이고 자신감 있는 태도를 배우고 있다.',
-        '색인표제어':'원영적사고','등재표제어':'원영적 사고','원어':'(員瑛的思考)','어종 표시':'(한+한)_한','어원':'','품사':'「구」',
-        '전문 분야':'','의미 영역':'개념',
-        '1차 뜻풀이':'어렵거나 힘든 상황을 긍정적으로 해석하고 받아들이는 사고방식.',
-        '2차 뜻풀이':'어렵거나 힘든 상황을 긍정적으로 해석하고 받아들이는 사고방식. 케이팝 걸 그룹 아이브(IVE)의 멤버 장원영이 여행 중 사려던 빵이 품절되자 갓 구운 빵을 받게 됐다며 행운으로 받아들인 일화에서 비롯된 표현이다.',
-        '뜻풀이':'어렵거나 힘든 상황을 긍정적으로 해석하고 받아들이는 사고방식. 케이팝 걸 그룹 아이브(IVE)의 멤버 장원영이 여행 중 사려던 빵이 품절되자 갓 구운 빵을 받게 됐다며 행운으로 받아들인 일화에서 비롯된 표현이다.',
-        '용례':'¶최종 디테일을 맞추기 위해 모인 마지막 날, 소품(마법봉)이 망가지는 사고가 발생했다. 이에 가을과 이서는 오히려 다행이라 생각한다며 원영적 사고로 상황을 극복해 눈길을 끌었다.',
-        '용례 출처':'≪스포츠동아 2024년 8월≫','용례 URL':'https://sports.donga.com/article/all/20240815/126538379/1',
-        '수정 용례':'¶공연 준비 마지막 날 소품이 망가졌지만, 아이브(IVE) 멤버들은 차라리 지금 부러져서 다행이라며 원영적 사고로 돌발 상황을 웃어넘겼다.',
-        '집필 메모':'표제어에 인명이 포함되어 있어 용례에도 아이브(IVE)를 그대로 사용함.','검토 메모(뜻풀이·예문)':'뜻풀이에 유래 설명을 추가함.','검토 메모(형태부)':'','검토자 메모':'고유명사가 포함된 신어.' };
-      ITEMS=[sample]; CUR=0; SCOPE='mine';
+      ME={email:'',name:'안진산',role:'검수자',isManager:true}; MODE='write'; SCOPE='mine';
       $('nav').style.display='none'; $('view-landing').classList.add('hidden'); $('view-work').classList.remove('hidden');
-      renderList(); renderWriteDetail(sample);
+      $('detail').innerHTML='<div class="placeholder">데모 데이터 불러오는 중…</div>';
+      fetch('demo_write.json').then(function(r){ return r.json(); }).then(function(rows){
+        ITEMS=rows; CUR=-1; renderList();
+        if(ITEMS.length){ CUR=0; document.querySelectorAll('.item').forEach(function(el){ el.classList.toggle('sel', el.getAttribute('data-i')=='0'); }); renderWriteDetail(ITEMS[0]); }
+      }).catch(function(e){ $('detail').innerHTML='<div class="placeholder">데모 로드 실패: '+esc(e.message)+'</div>'; });
     }
     (function init(){
       if((new URLSearchParams(location.search)).get('demo')==='write'){ renderWriteDemo(); return; }
