@@ -838,7 +838,7 @@
         + (String(it['ID']||'').indexOf('::new-')>=0 ? ' &nbsp; <button class="btn ghost del-item" onclick="deleteWriteItem()">🗑 새 항목 삭제</button>' : '')
         + '</div>';
       h+='<div class="llm-box"><h3>🤖 GPT 1차 초안</h3>'+refRow_('의미 범주',it['GPT 의미 범주'])+refRow_('정의문',it['GPT 정의문'])+refRow_('설명문',it['GPT 설명문'])+refRow_('용례',it['GPT 용례'])+'</div>';
-      h+='<div class="diff-box"><h3>✍️ 뜻풀이 변경 이력 <span class="kbd">(변경분 하이라이트)</span></h3>'
+      h+='<div class="diff-box"><h3>✍️ 뜻풀이 변경 이력</h3>'
         + '<div class="drow"><span class="dl">LLM</span><div class="dv">'+esc(llmDef||'(없음)')+'</div></div>'
         + '<div class="drow"><span class="dl">작업자</span><div class="dv">'+wordDiff_(llmDef,it['1차 뜻풀이'])+'</div></div>'
         + '<div class="drow"><span class="dl">검수자</span><div class="dv">'+wordDiff_(it['1차 뜻풀이'],it['2차 뜻풀이'])+'</div></div></div>';
