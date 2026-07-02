@@ -836,7 +836,7 @@
       function cond(f,opts,target,enableVal,two,ed){ var v=it[f]||'', a=two?'data-f2':'data-f', cls=two?'w-field w2':'w-field', orig=two?' data-orig="'+ea(v)+'"':'', oc='onchange="'+(two?'mark2(this);':'')+'toggleCond(this)"'; var o=[''].concat(opts).map(function(x){return '<option value="'+ea(x)+'"'+(x===v?' selected':'')+'>'+(esc(x)||'선택')+'</option>';}).join(''); return '<select class="'+cls+'" '+a+'="'+esc(f)+'"'+orig+' data-target="'+esc(target)+'" data-enable="'+esc(enableVal)+'" '+oc+(ed?'':' disabled')+'>'+o+'</select>'; }
       var llmDef=String((it['GPT 정의문']||'')+' '+(it['GPT 설명문']||'')).trim();
       var h='<div class="cand-label">신어 집필</div><div class="cand-term">'+esc(it['신어 후보'])+'</div>'
-        + '<div class="cand-meta">최초 출현 <b>'+esc(it['최초출현일']||it['추출 시기']||'-')+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' - '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')
+        + '<div class="cand-meta">최초 출현 <b>'+(it['최초출현일']?ymd(it['최초출현일']):(it['추출 시기']?ym(it['추출 시기']):'-'))+'</b> &nbsp;·&nbsp; '+esc(it['작업자']||'?')+' - '+esc(it['검수자']||'?')+(it['배정 주차']?' ('+esc(it['배정 주차'])+'주차)':'')
         + (String(it['ID']||'').indexOf('::new-')>=0 ? ' &nbsp; <button class="btn ghost del-item" onclick="deleteWriteItem()">🗑 새 항목 삭제</button>' : '')
         + '</div>';
       h+='<div class="llm-box"><h3>🤖 GPT 1차 초안</h3>'+refRow_('의미 범주',it['GPT 의미 범주'])+refRow_('정의문',it['GPT 정의문'])+refRow_('설명문',it['GPT 설명문'])+refRow_('용례',it['GPT 용례'])+'</div>';
