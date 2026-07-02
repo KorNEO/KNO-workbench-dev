@@ -844,7 +844,7 @@
         + '<div class="wf-sec">📝 작업 메모</div>'
         + fld('형태부',ta('집필 메모(형태부)',2,canField))+fld('의미부',ta('집필 메모(의미부)',2,canField))
         + '</div>'
-        + '<div class="ss-foot">'+(isW?'<button class="btn save" onclick="saveWriteForm(1,false)">1차 작업 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">작업자만 저장</span>')+'</div>'
+        + '<div class="ss-foot">'+(isW?'<button class="btn save" onclick="saveWriteForm(1,false)">1차 작업 저장</button> <span class="save-badge"></span>':'<span class="kbd">작업자만 저장</span>')+'</div>'
         + '</div>';
       // → 2차 검수(검수자) — 1차 복사본, 변경분 하이라이트
       h+='<div class="stage-sec s2"><div class="ss-head">🔎 2차 검수 <span class="ss-who">검수자 '+esc(it['검수자']||'?')+'</span></div>'
@@ -858,7 +858,7 @@
         + '<div class="wf-sec">🔎 검수 메모</div>'
         + fld('형태부',ta('검수 메모(형태부)',2,isR))+fld('의미부',ta('검수 메모(의미부)',2,isR))
         + '</div>'
-        + '<div class="ss-foot">'+(isR?'<button class="btn save" onclick="saveWriteForm(2,false)">2차 검수 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">검수자만 저장</span>')+'</div>'
+        + '<div class="ss-foot">'+(isR?'<button class="btn save" onclick="saveWriteForm(2,false)">2차 검수 저장</button> <span class="save-badge"></span>':'<span class="kbd">검수자만 저장</span>')+'</div>'
         + '</div>';
       h+='</div>';
       h+='<datalist id="dl-jm">'+FIELD_67.map(function(x){return '<option value="『'+esc(x)+'』">';}).join('')+'</datalist>';
