@@ -203,6 +203,8 @@
     .pf input { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font-size:14px; }
     .filepick { display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:10px; padding:6px; cursor:pointer; background:#fafbfd; }
     .filepick:hover { border-color:#c6d0f5; }
+    .filepick.drag { border:2px dashed var(--brand); background:#eef1ff; }
+    .fp-hint { color:#aab; font-size:12px; margin-left:auto; white-space:nowrap; }
     .fp-btn { background:var(--brand); color:#fff; border-radius:8px; padding:7px 15px; font-size:13px; font-weight:700; white-space:nowrap; }
     .fp-name { color:var(--muted); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     /* 작업 배분(관리자) */
@@ -343,7 +345,7 @@
       <div class="pf"><label>신어 후보 목록 파일</label>
         <div style="margin-bottom:8px"><button class="rbtn link" onclick="downloadTemplate()">⬇ 파일 양식 다운로드</button></div>
         <input id="proj-file" type="file" accept=".csv" style="display:none" onchange="onProjFile()">
-        <div class="filepick" onclick="$('proj-file').click()"><span class="fp-btn">파일 선택</span><span class="fp-name" id="proj-fname">선택된 파일 없음</span></div>
+        <div class="filepick" id="proj-drop" onclick="$('proj-file').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onProjDrop(event)"><span class="fp-btn">파일 선택</span><span class="fp-name" id="proj-fname">선택된 파일 없음</span><span class="fp-hint">또는 여기로 CSV 드래그</span></div>
       </div>
       <button class="login-btn" style="width:auto;padding:10px 22px;margin-top:8px" onclick="submitProject()">만들기</button>
       <span class="asg-msg" id="proj-msg"></span>
@@ -491,11 +493,17 @@
       if(!p) return;
       CURRENT_PROJECT=p; $('modeBadge').textContent=modeName()+' · '+p.name; showView('home');
     }
-    function openNewProject(){ if(!ME.isManager){ toast('관리자 전용'); return; } $('proj-name').value=''; try{$('proj-file').value='';}catch(e){} var fn=$('proj-fname'); if(fn) fn.textContent='선택된 파일 없음'; $('proj-msg').textContent=''; $('projModal').classList.remove('hidden'); }
-    function onProjFile(){ var f=$('proj-file').files[0]; $('proj-fname').textContent = f ? f.name : '선택된 파일 없음'; }
+    function openNewProject(){ if(!ME.isManager){ toast('관리자 전용'); return; } $('proj-name').value=''; try{$('proj-file').value='';}catch(e){} PROJ_DROP_FILE=null; var fn=$('proj-fname'); if(fn) fn.textContent='선택된 파일 없음'; $('proj-msg').textContent=''; $('projModal').classList.remove('hidden'); }
+    var PROJ_DROP_FILE=null;
+    function onProjFile(){ var f=$('proj-file').files[0]; if(f) PROJ_DROP_FILE=null; var g=f||PROJ_DROP_FILE; $('proj-fname').textContent = g ? g.name : '선택된 파일 없음'; }
+    function onProjDrop(e){ e.preventDefault(); var el=$('proj-drop'); if(el) el.classList.remove('drag');
+      var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(!f) return;
+      if(!/\.csv$/i.test(f.name)){ toast('CSV 파일만 가능합니다.'); return; }
+      PROJ_DROP_FILE=f; try{ var dt=new DataTransfer(); dt.items.add(f); $('proj-file').files=dt.files; }catch(err){}
+      $('proj-fname').textContent=f.name; }
     function closeProjModal(){ $('projModal').classList.add('hidden'); }
     function submitProject(){
-      var name=($('proj-name').value||'').trim(), f=$('proj-file').files[0];
+      var name=($('proj-name').value||'').trim(), f=$('proj-file').files[0]||PROJ_DROP_FILE;
       if(!name){ toast('프로젝트 이름을 입력하세요.'); return; }
       if(!f){ toast('CSV 파일을 선택하세요.'); return; }
       $('proj-msg').textContent='업로드 중…';
