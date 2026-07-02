@@ -81,6 +81,9 @@
     .stage-sec { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:14px 0; }
     .stage-sec.s1 { border-left:4px solid #7c8cf0; } .stage-sec.s2 { border-left:4px solid var(--sineo); }
     .ss-head { font-weight:800; font-size:15px; margin-bottom:10px; } .ss-head .ss-who { font-weight:600; font-size:12px; color:var(--muted); margin-left:8px; }
+    .sym-bar { margin:12px 0; font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+    .sym-bar .sym { border:1px solid var(--line); background:#fff; border-radius:6px; padding:3px 9px; font-size:14px; cursor:pointer; color:var(--ink); }
+    .sym-bar .sym:hover { background:#eef1ff; border-color:var(--brand); }
     .prior { background:#f7f8ff; border:1px solid #e2e6fb; border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:12px; } .prior .lab { color:var(--brand-d); font-weight:700; }
     .stages.two { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .stage-panel { border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:#fcfcff; margin-top:10px; }
@@ -791,13 +794,21 @@
       return tok_(cur).map(function(w){ if(pset[w]>0){ pset[w]--; return esc(w); } return '<mark>'+esc(w)+'</mark>'; }).join(' ');
     }
     function refRow_(k,v){ return '<div class="row"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v||'-')+'</div></div>'; }
+    var LAST_FIELD=null;
+    function insertSym(s){
+      var el=LAST_FIELD; if(!el||el.readOnly){ toast('먼저 입력할 칸을 클릭하세요.'); return; }
+      var a=el.selectionStart||0, b=el.selectionEnd||0, v=el.value;
+      el.value=v.slice(0,a)+s+v.slice(b); el.focus(); try{ el.selectionStart=el.selectionEnd=a+s.length; }catch(e){}
+    }
     function renderWriteDetail(it){
       var isW=(ME.isManager||ME.name===String(it['작업자']||'').trim());
       var isR=(ME.isManager||ME.name===String(it['검수자']||'').trim());
       var canField=isW||isR;   // 집필 필드: 작업자 또는 검수자(전수 수정)
-      function inp(f,ed){ return '<input class="w-field" data-f="'+esc(f)+'" value="'+esc(it[f]||'')+'"'+(ed?'':' readonly')+'>'; }
-      function ta(f,rows,ed){ return '<textarea class="w-field" data-f="'+esc(f)+'" rows="'+(rows||2)+'"'+(ed?'':' readonly')+'>'+esc(it[f]||'')+'</textarea>'; }
-      function dl(f,list,ed){ return '<input class="w-field" data-f="'+esc(f)+'" list="'+list+'" value="'+esc(it[f]||'')+'" placeholder="검색·선택"'+(ed?'':' readonly')+'>'; }
+      var TPL={'원어':'()','품사':'「」','어원':'【】'};   // 빈 칸에 기호 미리 채움
+      function pv(f){ var x=it[f]||''; return (!x && TPL[f]) ? TPL[f] : x; }
+      function inp(f,ed){ return '<input class="w-field" data-f="'+esc(f)+'" value="'+esc(pv(f))+'"'+(ed?'':' readonly')+'>'; }
+      function ta(f,rows,ed){ return '<textarea class="w-field" data-f="'+esc(f)+'" rows="'+(rows||2)+'"'+(ed?'':' readonly')+'>'+esc(pv(f))+'</textarea>'; }
+      function dl(f,list,ed){ return '<input class="w-field" data-f="'+esc(f)+'" list="'+list+'" value="'+esc(pv(f))+'" placeholder="검색·선택"'+(ed?'':' readonly')+'>'; }
       function fld(label,ctrl){ return '<div class="wf"><label>'+esc(label)+'</label>'+ctrl+'</div>'; }
       var llmDef=String((it['GPT 정의문']||'')+' '+(it['GPT 설명문']||'')).trim();
       var h='<div class="cand-label">신어 집필</div><div class="cand-term">'+esc(it['신어 후보'])+'</div>'
@@ -807,6 +818,8 @@
         + '<div class="drow"><span class="dl">LLM</span><div class="dv">'+esc(llmDef||'(없음)')+'</div></div>'
         + '<div class="drow"><span class="dl">인간 1차</span><div class="dv">'+wordDiff_(llmDef,it['1차 뜻풀이'])+'</div></div>'
         + '<div class="drow"><span class="dl">인간 2차</span><div class="dv">'+wordDiff_(it['1차 뜻풀이'],it['2차 뜻풀이'])+'</div></div></div>';
+      var SYMS=['^','·','-','▼','▽','←','▾','¶','≪','≫','“','”','‘','’','『』','「」','〔〕','【】','「구」','<영>','<한>','<일>','<프>'];
+      h+='<div class="sym-bar">기호 삽입: '+SYMS.map(function(s){ return '<button type="button" class="sym" onclick="insertSym(\''+s+'\')">'+esc(s)+'</button>'; }).join('')+' <span class="kbd">(칸 클릭 후 누르면 커서 위치에 삽입)</span></div>';
       // ① 1차 집필(작업자)
       h+='<div class="stage-sec s1"><div class="ss-head">✍️ 1차 집필 <span class="ss-who">작업자 '+esc(it['작업자']||'?')+'</span></div>'
         + '<div class="write-form">'
@@ -827,9 +840,10 @@
         + '</div>'
         + (isR?'<button class="btn save" onclick="saveWriteForm(2,false)">2차 검토 저장</button> <span class="save-badge">저장 완료</span>':'<span class="kbd">검수자만 저장</span>')
         + '</div>';
-      h+='<datalist id="dl-jm">'+FIELD_67.map(function(x){return '<option value="'+esc(x)+'">';}).join('')+'</datalist>';
-      h+='<datalist id="dl-um">'+FIELD_15.map(function(x){return '<option value="'+esc(x)+'">';}).join('')+'</datalist>';
+      h+='<datalist id="dl-jm">'+FIELD_67.map(function(x){return '<option value="『'+esc(x)+'』">';}).join('')+'</datalist>';
+      h+='<datalist id="dl-um">'+FIELD_15.map(function(x){return '<option value="〔'+esc(x)+'〕">';}).join('')+'</datalist>';
       $('detail').innerHTML=h;
+      document.querySelectorAll('#detail .w-field').forEach(function(el){ el.addEventListener('focus',function(){ LAST_FIELD=el; }); });
     }
     function collectWrite_(){ var f={}; document.querySelectorAll('#detail .w-field').forEach(function(el){ f[el.getAttribute('data-f')]=el.value; }); return f; }
     function saveWriteForm(stage, silent){
