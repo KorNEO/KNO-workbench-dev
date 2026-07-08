@@ -682,7 +682,7 @@ function saveResearchers(token, list) {
 // 기존 계정정보(token/링크/아이디/비번)는 이메일 기준 보존하므로 재실행해도 안전.
 var SEED_ROSTER = [
   { email: 'nki@yonsei.ac.kr', name: '남길임', role: '검수자', '소속': '연세대학교', '성별': '여성' },
-  { email: 'camus0101@gmail.com', name: '송현주', role: '검수자', '소속': '경북대학교', '성별': '여성' },
+  { email: 'songhj@knu.ac.kr', name: '송현주', role: '검수자', '소속': '경북대학교', '성별': '여성' },
   { email: 'cjuni2000@gmail.com', name: '최준', role: '검수자', '소속': '전남대학교', '성별': '남성' },
   { email: 'fbih02@gmail.com', name: '현영희', role: '검수자', '소속': '경북대학교', '성별': '여성' },
   { email: 'sjmano27@gmail.com', name: '이수진', role: '검수자', '소속': '경북대학교', '성별': '여성' },
