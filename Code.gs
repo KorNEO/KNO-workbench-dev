@@ -41,7 +41,7 @@ function headersFor_(kind) { return kind === '집필' ? HEADERS_WRITE : HEADERS;
 
 // 연구원 스키마: 구글계정1 이름2 역할3 초대일시4 응답상태5 수락일시6 token7 개인링크8 아이디9 비번해시10 소속11 성별12
 var USER_HDR = ['구글 계정', '이름', '역할', '초대 일시', '응답 상태', '수락 일시', '토큰', '개인 링크', '아이디', '비밀번호 해시', '소속', '성별'];
-var PROJ_HEADERS = ['프로젝트 ID', '이름', '유형', '업로드 일자', '상태', '파일 ID'];   // file_id = 프로젝트 전용 스프레드시트 ID
+var PROJ_HEADERS = ['프로젝트 ID', '이름', '유형', '등록일', '마감일', '상태', '파일 ID'];   // 등록일·마감일 = 관리자 설정, file_id = 프로젝트 전용 스프레드시트 ID
 var DRIVE_ROOT = 'KNO 워크벤치';   // 최상위 드라이브 폴더(하위: 프로젝트/·원본 업로드/, 작업유형별)
 var PRES_TTL = 100;
 var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyJfYPkTM6YRaqUHtvrIKxaf6ObSmb6KiGSFTiMOGCRlAkideVoX-32iet9PmWuBLw8/exec';   // doPost API 엔드포인트(프론트가 fetch)
@@ -59,7 +59,7 @@ function doGet(e) {   // /exec 접근 시 Pages 프론트로 리다이렉트
 var API = {
   getBootstrap: getBootstrap, ping: ping, getPresence: getPresence,
   getGuide: getGuide, setGuide: setGuide,
-  getProjects: getProjects, createProject: createProject, deleteProject: deleteProject, exportProject: exportProject, getTemplate: getTemplate,
+  getProjects: getProjects, createProject: createProject, updateProject: updateProject, deleteProject: deleteProject, exportProject: exportProject, getTemplate: getTemplate,
   getResearchers: getResearchers, saveResearchers: saveResearchers,
   getAssignees: getAssignees, genAgree: genAgree, genReal: genReal,
   getProgress: getProgress, getItems: getItems, getItem: getItem,
@@ -224,7 +224,17 @@ function projRegSheet_() {
   var sh = ss_().getSheetByName(SHEET_PROJECTS);
   if (!sh) { sh = ss_().insertSheet(SHEET_PROJECTS); sh.getRange(1, 1, 1, PROJ_HEADERS.length).setValues([PROJ_HEADERS]); styleHeader_(sh, PROJ_HEADERS.length); return sh; }
   var hdr = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), PROJ_HEADERS.length)).getValues()[0];
-  if (String(hdr[5]).trim() !== '파일 ID') sh.getRange(1, 1, 1, PROJ_HEADERS.length).setValues([PROJ_HEADERS]);   // 구 스키마→신 스키마
+  var h = hdr.map(function (x) { return String(x).trim(); });
+  if (h.indexOf('마감일') < 0) {   // 구 스키마 → 신 스키마: 업로드 일자→등록일, 마감일 열 추가 (데이터 무손실 이관)
+    var upIdx = h.indexOf('업로드 일자'); if (upIdx < 0) upIdx = h.indexOf('등록일');
+    if (upIdx >= 0) {
+      sh.getRange(1, upIdx + 1).setValue('등록일');                                    // 업로드 일자 → 등록일 (같은 열, 기존 값 유지)
+      sh.insertColumnAfter(upIdx + 1); sh.getRange(1, upIdx + 2).setValue('마감일');   // 등록일 뒤에 마감일 삽입 (상태·파일 ID 자동 우측 이동)
+      styleHeader_(sh, sh.getLastColumn());
+    } else if (sh.getLastRow() < 2) {
+      sh.getRange(1, 1, 1, PROJ_HEADERS.length).setValues([PROJ_HEADERS]); styleHeader_(sh, PROJ_HEADERS.length);   // 빈 시트: 헤더만 재설정
+    }
+  }
   return sh;
 }
 function fmtDate_(v) {   // Date/문자열 → 'YYYY.MM.DD'
@@ -244,7 +254,7 @@ function projList_(kind) {
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i]; if (kind && String(r[idx['유형']]).trim() !== kind) continue;
     out.push({ id: String(r[idx['프로젝트 ID']]).trim(), name: String(r[idx['이름']]).trim(), type: String(r[idx['유형']]).trim(),
-      uploaded: fmtDate_(r[idx['업로드 일자']]), status: String(r[idx['상태']]).trim(), fileId: String(r[idx['파일 ID']] || '').trim(), _row: i + 2 });
+      registered: fmtDate_(r[idx['등록일']]), due: fmtDate_(r[idx['마감일']]), status: String(r[idx['상태']]).trim(), fileId: String(r[idx['파일 ID']] || '').trim(), _row: i + 2 });
   }
   return out;
 }
@@ -259,9 +269,9 @@ function projSetStatus_(projectId, status) { var p = projById_(projectId); if (!
 
 function getProjects(token, kind) {
   me_(token);
-  return projList_(kind).map(function (p) { return { id: p.id, name: p.name, type: p.type, uploaded: p.uploaded, status: p.status, items: projItemsCount_(p) }; });
+  return projList_(kind).map(function (p) { return { id: p.id, name: p.name, type: p.type, registered: p.registered, due: p.due, status: p.status, items: projItemsCount_(p) }; });
 }
-function createProject(token, kind, name, csvText) {
+function createProject(token, kind, name, csvText, regDate, dueDate) {
   assertManager_(me_(token));
   name = String(name || '').trim() || '새 프로젝트';
   var H = headersFor_(kind);
@@ -292,8 +302,22 @@ function createProject(token, kind, name, csvText) {
   }
   if (out.length) sh.getRange(2, 1, out.length, H.length).setValues(out);
   styleHeader_(sh, H.length);
-  projRegSheet_().appendRow([pid, name, kind, Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'), '미배분', fileId]);
+  var reg = fmtDate_(regDate) || Utilities.formatDate(new Date(), TZ, 'yyyy.MM.dd');   // 미지정 시 오늘
+  projRegSheet_().appendRow([pid, name, kind, reg, fmtDate_(dueDate), '미배분', fileId]);
   return { id: pid, name: name, items: out.length };
+}
+function updateProject(token, kind, id, name, regDate, dueDate) {
+  assertManager_(me_(token));
+  var p = projById_(id); if (!p) throw new Error('프로젝트 없음');
+  var reg = projRegSheet_(), idx = headerIndex_(reg);
+  name = String(name || '').trim();
+  if (name) {
+    reg.getRange(p._row, idx['이름'] + 1).setValue(name);
+    if (p.fileId) { try { DriveApp.getFileById(p.fileId).setName(name); } catch (e) {} }   // 드라이브 파일명 동기화
+  }
+  reg.getRange(p._row, idx['등록일'] + 1).setValue(fmtDate_(regDate) || p.registered);   // 등록일 미지정 시 기존 유지
+  reg.getRange(p._row, idx['마감일'] + 1).setValue(fmtDate_(dueDate));                    // 마감일 빈 값 허용
+  return { ok: true };
 }
 function deleteProject(token, kind, id) {
   assertManager_(me_(token));
@@ -644,7 +668,7 @@ function logClientFail(token, info) {
 
 // ── CSV 헬퍼(exportProject 백업 다운로드용) ────────────
 function toCsv_(rows) { return rows.map(function (r) { return r.map(csvCell_).join(','); }).join('\r\n'); }
-function csvCell_(v) { v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function csvCell_(v) { if (v instanceof Date) v = Utilities.formatDate(v, TZ, 'yyyyMMdd HHmmss'); v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
 
 // ── 연구원 명단(관리자) ────────────────────────────────
 function getResearchers(token) {
